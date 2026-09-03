@@ -1,6 +1,7 @@
 [gd_scene format=4 uid="uid://bebk7ootkmpoa"]
 
 [ext_resource type="Texture2D" uid="uid://cj5kttpgvoudp" path="res://assets/kenney_1-bit-pack/Tilesheet/colored-transparent.png" id="1_ypksv"]
+[ext_resource type="PackedScene" uid="uid://cs4xeyy0hnpcf" path="res://src/crew/crew.tscn" id="2_bsfh8"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bsfh8"]
 texture = ExtResource("1_ypksv")
@@ -1116,3 +1117,6 @@ tile_set = SubResource("TileSet_cs86t")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2070235500]
 position = Vector2(256, 104)
+
+[node name="Crew" parent="." unique_id=219303926 instance=ExtResource("2_bsfh8")]
+position = Vector2(55, 105)

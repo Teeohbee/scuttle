@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://cs4xeyy0hnpcf"]
+
+[ext_resource type="Script" uid="uid://byinikj2pksa6" path="res://src/crew/crew.gd" id="1_045c8"]
+[ext_resource type="Texture2D" uid="uid://cj5kttpgvoudp" path="res://assets/kenney_1-bit-pack/Tilesheet/colored-transparent.png" id="2_045c8"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hwtou"]
+radius = 6.0
+
+[node name="Crew" type="CharacterBody2D" unique_id=219303926]
+motion_mode = 1
+script = ExtResource("1_045c8")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1430081104]
+texture = ExtResource("2_045c8")
+region_enabled = true
+region_rect = Rect2(459, 17, 16, 16)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=346955433]
+shape = SubResource("CircleShape2D_hwtou")
