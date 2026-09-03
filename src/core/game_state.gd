@@ -16,8 +16,8 @@ func win() -> void:
 	settled = true
 	won.emit()
 
-func lose() -> void:
+func lose(reason: String) -> void:
 	if settled or invulnerable:
 		return
 	settled = true
-	lost.emit()
+	lost.emit(reason)
