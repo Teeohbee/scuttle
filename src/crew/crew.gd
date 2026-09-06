@@ -1,10 +1,16 @@
 extends CharacterBody2D
 
-const SPEED := 90
+const SPEED := 90.0
 
-func _physics_process(delta: float) -> void:
-	var move := Vector2.ZERO
-	move.x = int(Input.is_key_pressed(KEY_D)) - int(Input.is_key_pressed(KEY_A))
-	move.y = int(Input.is_key_pressed(KEY_S)) - int(Input.is_key_pressed(KEY_W))
-	velocity = move.normalized() * SPEED
+@export var device_id: int = PlayerRegistry.KEYBOARD_WASD
+@export var accent: Color = Color.WHITE
+
+@onready var _sprite: Sprite2D = $Sprite2D
+
+func _ready() -> void:
+	add_to_group("crew")
+	_sprite.modulate = accent
+
+func _physics_process(_delta: float) -> void:
+	velocity = PlayerRegistry.move_vector(device_id) * SPEED
 	move_and_slide()
