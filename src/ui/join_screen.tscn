@@ -1,0 +1,161 @@
+[gd_scene format=3 uid="uid://be42nd56mxjq8"]
+
+[ext_resource type="Script" uid="uid://xklqi10wc6ly" path="res://src/ui/join_screen.gd" id="1_hauy1"]
+
+[node name="JoinScreen" type="Control" unique_id=274176339]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_hauy1")
+
+[node name="Label" type="Label" parent="." unique_id=1646206587]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 44.0
+offset_bottom = 80.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 28
+text = "SCUTTLE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Slots" type="HBoxContainer" parent="." unique_id=362563112]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="PanelContainer" type="PanelContainer" parent="Slots" unique_id=959964112]
+custom_minimum_size = Vector2(92, 60)
+layout_mode = 2
+
+[node name="Layout" type="VBoxContainer" parent="Slots/PanelContainer" unique_id=310045501]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Label" type="Label" parent="Slots/PanelContainer/Layout" unique_id=229534175]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "P1"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="Slots/PanelContainer/Layout" unique_id=1419539965]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "PRESS TO JOIN"
+horizontal_alignment = 1
+
+[node name="PanelContainer2" type="PanelContainer" parent="Slots" unique_id=591853006]
+custom_minimum_size = Vector2(92, 60)
+layout_mode = 2
+
+[node name="Layout" type="VBoxContainer" parent="Slots/PanelContainer2" unique_id=310045502]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Label" type="Label" parent="Slots/PanelContainer2/Layout" unique_id=1256216532]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "P2"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="Slots/PanelContainer2/Layout" unique_id=960727951]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "PRESS TO JOIN"
+horizontal_alignment = 1
+
+[node name="PanelContainer3" type="PanelContainer" parent="Slots" unique_id=88506446]
+custom_minimum_size = Vector2(92, 60)
+layout_mode = 2
+
+[node name="Layout" type="VBoxContainer" parent="Slots/PanelContainer3" unique_id=310045503]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Label" type="Label" parent="Slots/PanelContainer3/Layout" unique_id=1933993796]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "P3"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="Slots/PanelContainer3/Layout" unique_id=576477061]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "PRESS TO JOIN"
+horizontal_alignment = 1
+
+[node name="PanelContainer4" type="PanelContainer" parent="Slots" unique_id=1124980887]
+custom_minimum_size = Vector2(92, 60)
+layout_mode = 2
+
+[node name="Layout" type="VBoxContainer" parent="Slots/PanelContainer4" unique_id=310045504]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Label" type="Label" parent="Slots/PanelContainer4/Layout" unique_id=741197278]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "P4"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="Slots/PanelContainer4/Layout" unique_id=1020692556]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "PRESS TO JOIN"
+horizontal_alignment = 1
+
+[node name="PanelContainer5" type="PanelContainer" parent="Slots" unique_id=127520565]
+custom_minimum_size = Vector2(92, 60)
+layout_mode = 2
+
+[node name="Layout" type="VBoxContainer" parent="Slots/PanelContainer5" unique_id=310045505]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Label" type="Label" parent="Slots/PanelContainer5/Layout" unique_id=1912974956]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "P5"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="Slots/PanelContainer5/Layout" unique_id=892843018]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "PRESS TO JOIN"
+horizontal_alignment = 1
+
+[node name="PanelContainer6" type="PanelContainer" parent="Slots" unique_id=932611941]
+custom_minimum_size = Vector2(92, 60)
+layout_mode = 2
+
+[node name="Layout" type="VBoxContainer" parent="Slots/PanelContainer6" unique_id=310045506]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Label" type="Label" parent="Slots/PanelContainer6/Layout" unique_id=1864481967]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "P6"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="Slots/PanelContainer6/Layout" unique_id=792563615]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "PRESS TO JOIN"
+horizontal_alignment = 1
