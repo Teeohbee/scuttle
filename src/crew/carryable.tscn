@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://1xevh5kemy0j"]
+
+[ext_resource type="Script" uid="uid://xf7nc4mxb0fh" path="res://src/crew/carryable.gd" id="1_wjy4m"]
+[ext_resource type="Texture2D" path="res://src/crew/icons/powder.tres" id="2_powder"]
+[ext_resource type="Texture2D" path="res://src/crew/icons/shot.tres" id="3_shot"]
+[ext_resource type="Texture2D" path="res://src/crew/icons/plank.tres" id="4_plank"]
+[ext_resource type="Texture2D" path="res://src/crew/icons/bucket_water.tres" id="5_bucket_water"]
+[ext_resource type="Texture2D" path="res://src/crew/icons/bucket_empty.tres" id="6_bucket_empty"]
+
+[node name="Carryable" type="Node2D" unique_id=1111646680]
+script = ExtResource("1_wjy4m")
+icons = Array[AtlasTexture]([ExtResource("2_powder"), ExtResource("3_shot"), ExtResource("4_plank"), ExtResource("5_bucket_water"), ExtResource("6_bucket_empty")])
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1061072883]

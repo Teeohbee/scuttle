@@ -2,3 +2,6 @@
 .godot/
 /android/
 .DS_Store
+
+# The global macOS "Icon?" rule also matches directories named "icons"
+!src/crew/icons/
