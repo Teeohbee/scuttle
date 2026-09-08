@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://enlw2xeagljs" path="res://src/ship/deck.gd" id="1_bsfh8"]
 [ext_resource type="Texture2D" uid="uid://cj5kttpgvoudp" path="res://assets/kenney_1-bit-pack/Tilesheet/colored-transparent.png" id="1_ypksv"]
+[ext_resource type="PackedScene" uid="uid://1xevh5kemy0j" path="res://src/crew/carryable.tscn" id="3_8161o"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bsfh8"]
 texture = ExtResource("1_ypksv")
@@ -1118,3 +1119,11 @@ tile_set = SubResource("TileSet_cs86t")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2070235500]
 position = Vector2(256, 104)
+
+[node name="Carryable" parent="." unique_id=1111646680 instance=ExtResource("3_8161o")]
+position = Vector2(79, 107)
+kind = 3
+
+[node name="Carryable2" parent="." unique_id=1087095267 instance=ExtResource("3_8161o")]
+position = Vector2(171, 105)
+kind = 2
