@@ -17,3 +17,6 @@ region_rect = Rect2(459, 17, 16, 16)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=346955433]
 shape = SubResource("CircleShape2D_hwtou")
+
+[node name="HoldPoint" type="Marker2D" parent="." unique_id=792359839]
+position = Vector2(0, 3)
