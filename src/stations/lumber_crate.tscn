@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://d3un53n3gimsf"]
+
+[ext_resource type="PackedScene" uid="uid://bvocleqi0ye7j" path="res://src/stations/source_station.tscn" id="1_jajrc"]
+[ext_resource type="PackedScene" uid="uid://1xevh5kemy0j" path="res://src/crew/carryable.tscn" id="2_to6s0"]
+
+[node name="LumberCrate" unique_id=1608458411 instance=ExtResource("1_jajrc")]
+carryable_scene = ExtResource("2_to6s0")
+kind = 2
+breachable = false

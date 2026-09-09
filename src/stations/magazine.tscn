@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://cvocb8sueae36"]
+
+[ext_resource type="PackedScene" uid="uid://bvocleqi0ye7j" path="res://src/stations/source_station.tscn" id="1_26kus"]
+[ext_resource type="PackedScene" uid="uid://1xevh5kemy0j" path="res://src/crew/carryable.tscn" id="2_bsmmj"]
+
+[node name="Magazine" unique_id=1608458411 instance=ExtResource("1_26kus")]
+carryable_scene = ExtResource("2_bsmmj")
+breachable = true

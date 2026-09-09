@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://bvocleqi0ye7j"]
+
+[ext_resource type="PackedScene" uid="uid://cqygajddf0ucs" path="res://src/stations/station.tscn" id="1_ympvr"]
+[ext_resource type="Script" uid="uid://caf8b57b0wthb" path="res://src/stations/source_station.gd" id="2_t1p3d"]
+
+[node name="SourceStation" unique_id=1608458411 instance=ExtResource("1_ympvr")]
+script = ExtResource("2_t1p3d")
+carryable_scene = null
+kind = 0
+hold_duration = 0.8

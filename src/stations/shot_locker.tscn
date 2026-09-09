@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://y0qxfjjak0a2"]
+
+[ext_resource type="PackedScene" uid="uid://bvocleqi0ye7j" path="res://src/stations/source_station.tscn" id="1_6nq8m"]
+[ext_resource type="PackedScene" uid="uid://1xevh5kemy0j" path="res://src/crew/carryable.tscn" id="2_0mkv8"]
+
+[node name="ShotLocker" unique_id=1608458411 instance=ExtResource("1_6nq8m")]
+carryable_scene = ExtResource("2_0mkv8")
+kind = 1

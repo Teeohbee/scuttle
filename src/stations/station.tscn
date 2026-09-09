@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://cqygajddf0ucs"]
+
+[ext_resource type="Texture2D" uid="uid://cj5kttpgvoudp" path="res://assets/kenney_1-bit-pack/Tilesheet/colored-transparent.png" id="1_d1yxg"]
+[ext_resource type="Script" uid="uid://b62w5acjdhibd" path="res://src/stations/station.gd" id="1_goxpf"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_jvevi"]
+radius = 14.0
+
+[node name="Station" type="Area2D" unique_id=1608458411 groups=["stations"]]
+script = ExtResource("1_goxpf")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2019996309]
+shape = SubResource("CircleShape2D_jvevi")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=2066824395]
+texture = ExtResource("1_d1yxg")
+region_enabled = true
