@@ -7,3 +7,6 @@
 carryable_scene = ExtResource("2_to6s0")
 kind = 2
 breachable = false
+
+[node name="Sprite2D" parent="." index="1" unique_id=2066824395]
+region_rect = Rect2(187, 255, 16, 16)

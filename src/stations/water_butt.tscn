@@ -6,3 +6,6 @@
 [node name="WaterButt" unique_id=1608458411 instance=ExtResource("1_mc220")]
 carryable_scene = ExtResource("2_xr30b")
 kind = 3
+
+[node name="Sprite2D" parent="." index="1"]
+region_rect = Rect2(85, 238, 16, 16)

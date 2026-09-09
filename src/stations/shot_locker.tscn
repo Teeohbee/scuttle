@@ -6,3 +6,6 @@
 [node name="ShotLocker" unique_id=1608458411 instance=ExtResource("1_6nq8m")]
 carryable_scene = ExtResource("2_0mkv8")
 kind = 1
+
+[node name="Sprite2D" parent="." index="1"]
+region_rect = Rect2(748, 153, 16, 16)

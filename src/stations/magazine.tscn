@@ -6,3 +6,6 @@
 [node name="Magazine" unique_id=1608458411 instance=ExtResource("1_26kus")]
 carryable_scene = ExtResource("2_bsmmj")
 breachable = true
+
+[node name="Sprite2D" parent="." index="1"]
+region_rect = Rect2(238, 221, 16, 16)
