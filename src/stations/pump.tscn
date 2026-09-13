@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://dvvpqvhdvsmuu"]
+
+[ext_resource type="PackedScene" uid="uid://cqygajddf0ucs" path="res://src/stations/station.tscn" id="1_rd8dv"]
+[ext_resource type="Script" uid="uid://sw24sap4dea6" path="res://src/stations/pump.gd" id="2_0ktfx"]
+
+[node name="Station" unique_id=1608458411 instance=ExtResource("1_rd8dv")]
+script = ExtResource("2_0ktfx")
+
+[node name="Sprite2D" parent="." index="1" unique_id=2066824395]
+region_rect = Rect2(170, 204, 16, 16)
