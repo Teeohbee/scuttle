@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://d0mwp5b4vd3in"]
+
+[ext_resource type="PackedScene" uid="uid://cqygajddf0ucs" path="res://src/stations/station.tscn" id="1_sxv1b"]
+[ext_resource type="Script" uid="uid://voclmdv3wd8k" path="res://src/stations/cannon.gd" id="2_0wvrj"]
+
+[node name="Station" unique_id=1608458411 instance=ExtResource("1_sxv1b")]
+script = ExtResource("2_0wvrj")
+
+[node name="Sprite2D" parent="." index="1" unique_id=2066824395]
+region_rect = Rect2(153, 340, 16, 16)
+
+[node name="PhaseLight" type="ColorRect" parent="." index="2" unique_id=128000689]
+offset_left = -3.0
+offset_top = -12.0
+offset_right = 3.0
+offset_bottom = -6.0
