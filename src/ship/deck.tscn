@@ -2,7 +2,12 @@
 
 [ext_resource type="Script" uid="uid://enlw2xeagljs" path="res://src/ship/deck.gd" id="1_bsfh8"]
 [ext_resource type="Texture2D" uid="uid://cj5kttpgvoudp" path="res://assets/kenney_1-bit-pack/Tilesheet/colored-transparent.png" id="1_ypksv"]
-[ext_resource type="PackedScene" uid="uid://1xevh5kemy0j" path="res://src/crew/carryable.tscn" id="3_8161o"]
+[ext_resource type="PackedScene" uid="uid://d0mwp5b4vd3in" path="res://src/stations/cannon.tscn" id="3_cannon"]
+[ext_resource type="PackedScene" uid="uid://cvocb8sueae36" path="res://src/stations/magazine.tscn" id="4_magazine"]
+[ext_resource type="PackedScene" uid="uid://y0qxfjjak0a2" path="res://src/stations/shot_locker.tscn" id="5_shotlocker"]
+[ext_resource type="PackedScene" uid="uid://17pcjvpciyuv" path="res://src/stations/water_butt.tscn" id="6_waterbutt"]
+[ext_resource type="PackedScene" uid="uid://dvvpqvhdvsmuu" path="res://src/stations/pump.tscn" id="7_pump"]
+[ext_resource type="PackedScene" uid="uid://d3un53n3gimsf" path="res://src/stations/lumber_crate.tscn" id="8_lumbercrate"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bsfh8"]
 texture = ExtResource("1_ypksv")
@@ -1120,10 +1125,26 @@ tile_set = SubResource("TileSet_cs86t")
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2070235500]
 position = Vector2(256, 104)
 
-[node name="Carryable" parent="." unique_id=1111646680 instance=ExtResource("3_8161o")]
-position = Vector2(79, 107)
-kind = 3
+[node name="CannonPortFore" parent="." unique_id=1938274651 instance=ExtResource("3_cannon")]
+position = Vector2(72, 40)
 
-[node name="Carryable2" parent="." unique_id=1087095267 instance=ExtResource("3_8161o")]
-position = Vector2(171, 105)
-kind = 2
+[node name="Magazine" parent="." unique_id=1284756392 instance=ExtResource("4_magazine")]
+position = Vector2(184, 40)
+
+[node name="ShotLocker" parent="." unique_id=1647382915 instance=ExtResource("5_shotlocker")]
+position = Vector2(296, 40)
+
+[node name="CannonPortAft" parent="." unique_id=1172839465 instance=ExtResource("3_cannon")]
+position = Vector2(408, 40)
+
+[node name="CannonStarboardFore" parent="." unique_id=1856473920 instance=ExtResource("3_cannon")]
+position = Vector2(72, 168)
+
+[node name="WaterButt" parent="." unique_id=1392847561 instance=ExtResource("6_waterbutt")]
+position = Vector2(184, 168)
+
+[node name="Pump" parent="." unique_id=1528374690 instance=ExtResource("7_pump")]
+position = Vector2(296, 168)
+
+[node name="LumberCrate" parent="." unique_id=1765432108 instance=ExtResource("8_lumbercrate")]
+position = Vector2(408, 168)
