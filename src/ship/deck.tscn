@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://17pcjvpciyuv" path="res://src/stations/water_butt.tscn" id="6_waterbutt"]
 [ext_resource type="PackedScene" uid="uid://dvvpqvhdvsmuu" path="res://src/stations/pump.tscn" id="7_pump"]
 [ext_resource type="PackedScene" uid="uid://d3un53n3gimsf" path="res://src/stations/lumber_crate.tscn" id="8_lumbercrate"]
+[ext_resource type="Script" uid="uid://df6tx7j6t74j8" path="res://src/hazards/fire.gd" id="9_s6vqv"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bsfh8"]
 texture = ExtResource("1_ypksv")
@@ -1148,3 +1149,6 @@ position = Vector2(296, 168)
 
 [node name="LumberCrate" parent="." unique_id=1765432108 instance=ExtResource("8_lumbercrate")]
 position = Vector2(408, 168)
+
+[node name="Fire" type="Node2D" parent="." unique_id=634839295]
+script = ExtResource("9_s6vqv")
