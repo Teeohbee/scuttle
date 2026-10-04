@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" uid="uid://c73p5u7l4rguw" path="res://src/ship/enemy_ship.tscn" id="10_q8nfn"]
 [ext_resource type="PackedScene" path="res://src/ui/feed.tscn" id="11_feed"]
 [ext_resource type="PackedScene" path="res://src/ui/hud.tscn" id="12_hud"]
+[ext_resource type="PackedScene" path="res://src/ui/scoreboard.tscn" id="13_scoreboard"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bsfh8"]
 texture = ExtResource("1_ypksv")
@@ -1164,3 +1165,5 @@ position = Vector2(256, -50)
 
 [node name="Hud" parent="." node_paths=PackedStringArray("enemy") instance=ExtResource("12_hud")]
 enemy = NodePath("../EnemyShip")
+
+[node name="Scoreboard" parent="." instance=ExtResource("13_scoreboard")]
