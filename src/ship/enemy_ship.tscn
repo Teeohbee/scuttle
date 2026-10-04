@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://c73p5u7l4rguw"]
+
+[ext_resource type="Script" uid="uid://cmpu6xorxw8dj" path="res://src/ship/enemy_ship.gd" id="1_h1nik"]
+[ext_resource type="Texture2D" uid="uid://nqxjb5p73uew" path="res://assets/kenney_1-bit-pack/Tilesheet/colored-transparent_packed.png" id="1_hull"]
+
+[node name="EnemyShip" type="Node2D" unique_id=2029424963]
+script = ExtResource("1_h1nik")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=255308998]
+texture = ExtResource("1_hull")
+region_enabled = true
+region_rect = Rect2(160, 240, 48, 16)
+
+[node name="Cadence" type="Timer" parent="." unique_id=1809845817]
+one_shot = true
