@@ -10,6 +10,9 @@
 [ext_resource type="PackedScene" uid="uid://d3un53n3gimsf" path="res://src/stations/lumber_crate.tscn" id="8_lumbercrate"]
 [ext_resource type="Script" uid="uid://df6tx7j6t74j8" path="res://src/hazards/fire.gd" id="9_s6vqv"]
 [ext_resource type="PackedScene" uid="uid://c73p5u7l4rguw" path="res://src/ship/enemy_ship.tscn" id="10_q8nfn"]
+[ext_resource type="PackedScene" path="res://src/ui/feed.tscn" id="11_feed"]
+[ext_resource type="PackedScene" path="res://src/ui/hud.tscn" id="12_hud"]
+[ext_resource type="PackedScene" path="res://src/ui/scoreboard.tscn" id="13_scoreboard"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bsfh8"]
 texture = ExtResource("1_ypksv")
@@ -1157,3 +1160,10 @@ hull = NodePath("../Hull")
 
 [node name="EnemyShip" parent="." unique_id=2029424963 instance=ExtResource("10_q8nfn")]
 position = Vector2(256, -50)
+
+[node name="Feed" parent="." instance=ExtResource("11_feed")]
+
+[node name="Hud" parent="." node_paths=PackedStringArray("enemy") instance=ExtResource("12_hud")]
+enemy = NodePath("../EnemyShip")
+
+[node name="Scoreboard" parent="." instance=ExtResource("13_scoreboard")]

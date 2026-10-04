@@ -34,7 +34,9 @@ func ignite_random() -> void:
 	var candidates := _ignitable_cells()
 	if candidates.is_empty():
 		return
-	_ignite(candidates[randi() % candidates.size()])
+	var cell := candidates[randi() % candidates.size()]
+	_ignite(cell)
+	outbreak.emit(cell)
 
 func claims_interact(crew) -> bool:
 	if crew.held_item == null or crew.held_item.kind != Carryable.Kind.BUCKET_WATER:
@@ -90,8 +92,7 @@ func _ignite(cell: Vector2i) -> void:
 	add_child(visual)
 	visual.global_position = _world_of(cell) - Vector2(8,8)
 	_burning[cell] = visual
-	outbreak.emit(cell)
-	
+
 	if _room_of(cell) == MAGAZINE_ROOM and not _reported_magazine:
 		_reported_magazine = true
 		GameState.lose("The magazine caught fire")

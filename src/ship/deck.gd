@@ -23,6 +23,16 @@ func _ready() -> void:
 	_enemy.broadside_landed.connect(_on_broadside_landed)
 	for cannon in get_tree().get_nodes_in_group("cannons"):
 		cannon.fired.connect(_on_cannon_fired)
+	$Fire.outbreak.connect(func(cell): $Feed.push("Fire in %s!" % _room_name(cell)))
+	_enemy.fired.connect(func(): $Feed.push("The enemy fired!"))
+
+func _room_name(cell: Vector2i) -> String:
+	var data := _hull.get_cell_tile_data(cell)
+	if data:
+		var room: String = data.get_custom_data("room")
+		if room != "":
+			return room.capitalize()
+	return "the ship"
 
 func _on_cannon_fired(damage: float) -> void:
 	_enemy.take_damage(damage)
