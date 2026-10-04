@@ -1,0 +1,3813 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ship's Log</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #f3ecd8;
+    --surface: #ebe0c2;
+    --surface-raised: #f8f2df;
+    --ink: #1f2417;
+    --ink-soft: #52583f;
+    --ink-faint: #5e624c;
+    --accent: #33611f;
+    --accent-strong: #234513;
+    --accent-bright: #688515;
+    --brass: #a5701f;
+    --brass-strong: #7d5416;
+    --rule: rgba(31, 36, 23, 0.16);
+    --rule-strong: rgba(31, 36, 23, 0.32);
+    --code-bg: #e4d7b4;
+    --pre-bg: #f0e7cc;
+    --shadow: rgba(31, 24, 10, 0.18);
+    --danger: #a3341c;
+    --tok-comment: #575649;
+    --tok-keyword: #346012;
+    --tok-string: #774c0b;
+    --tok-number: #84400f;
+    --tok-annot: #4f5f10;
+    --tok-type: #445b3a;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12160e;
+      --surface: #1a2013;
+      --surface-raised: #202718;
+      --ink: #e9e3c8;
+      --ink-soft: #b7b494;
+      --ink-faint: #8f9176;
+      --accent: #8fb52e;
+      --accent-strong: #b6d84c;
+      --accent-bright: #c7e05a;
+      --brass: #d9a24a;
+      --brass-strong: #eec078;
+      --rule: rgba(233, 227, 200, 0.14);
+      --rule-strong: rgba(233, 227, 200, 0.28);
+      --code-bg: #232a17;
+      --pre-bg: #252d18;
+      --shadow: rgba(0, 0, 0, 0.5);
+      --danger: #e0725a;
+      --tok-comment: #949979;
+      --tok-keyword: #c7e05a;
+      --tok-string: #d9a24a;
+      --tok-number: #e0b877;
+      --tok-annot: #8fb52e;
+      --tok-type: #a8bf8a;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #12160e;
+    --surface: #1a2013;
+    --surface-raised: #202718;
+    --ink: #e9e3c8;
+    --ink-soft: #b7b494;
+    --ink-faint: #8f9176;
+    --accent: #8fb52e;
+    --accent-strong: #b6d84c;
+    --accent-bright: #c7e05a;
+    --brass: #d9a24a;
+    --brass-strong: #eec078;
+    --rule: rgba(233, 227, 200, 0.14);
+    --rule-strong: rgba(233, 227, 200, 0.28);
+    --code-bg: #232a17;
+    --pre-bg: #252d18;
+    --shadow: rgba(0, 0, 0, 0.5);
+    --danger: #e0725a;
+    --tok-comment: #949979;
+    --tok-keyword: #c7e05a;
+    --tok-string: #d9a24a;
+    --tok-number: #e0b877;
+    --tok-annot: #8fb52e;
+    --tok-type: #a8bf8a;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Source Sans 3', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: var(--accent); color: var(--surface-raised); }
+
+  a { color: var(--accent-strong); text-decoration-color: var(--rule-strong); }
+  a:hover { color: var(--brass-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    text-wrap: balance;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  code, .mono, .kbd, kbd { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+  .page {
+    max-width: 1130px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .masthead {
+    grid-column: 1 / -1;
+    padding: 2.6rem clamp(1.25rem, 4vw, 3rem) 1.6rem;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+  .masthead-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--brass-strong);
+    margin: 0 0 0.55rem;
+    white-space: nowrap;
+  }
+  .masthead h1 { font-size: clamp(2rem, 4vw, 2.6rem); margin: 0; line-height: 1.05; }
+  .masthead p { margin: 0.75rem 0 0; max-width: 54ch; color: var(--ink-soft); font-size: 1.02rem; }
+  .masthead-facts {
+    display: grid;
+    gap: 0.5rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    text-align: right;
+    min-width: 190px;
+  }
+  .masthead-facts div { display: flex; justify-content: space-between; gap: 1.2rem; }
+  .masthead-facts b { color: var(--ink); font-weight: 600; }
+
+  nav.rail {
+    padding: 2rem 1.2rem 3rem 1.6rem;
+    align-self: start;
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+  nav.rail .rail-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.9rem;
+  }
+  nav.rail ol { list-style: none; margin: 0 0 1.6rem; padding: 0; counter-reset: watch; border-left: 1px solid var(--rule); }
+  nav.rail li { counter-increment: watch; margin: 0; }
+  nav.rail a {
+    display: block;
+    padding: 0.38rem 0 0.38rem 0.95rem;
+    margin-left: -1px;
+    border-left: 2px solid transparent;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  nav.rail a::before {
+    content: counter(watch, decimal-leading-zero);
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--brass-strong);
+    margin-right: 0.55rem;
+    font-size: 0.75rem;
+  }
+  nav.rail a:hover { color: var(--ink); border-left-color: var(--rule-strong); }
+  nav.rail .rail-note { font-size: 0.8rem; color: var(--ink-faint); line-height: 1.5; padding-top: 1rem; border-top: 1px solid var(--rule); }
+
+  /* The divider belongs to the tall column, so it runs the whole page
+     rather than stopping where the sticky rail's 100vh box ends. */
+  main {
+    padding: 2.4rem clamp(1.25rem, 4vw, 3.2rem) 6rem;
+    min-width: 0;
+    border-left: 1px solid var(--rule);
+  }
+
+  /* Prose keeps a readable measure; code, tables and diagrams are allowed
+     the full column, which is what they actually need. */
+  .measure,
+  .lede,
+  section.watch > p,
+  section.watch > ul,
+  section.watch > ol:not(.steps),
+  section.watch > h2,
+  section.watch > h3,
+  section.watch > .watch-kicker,
+  ol.steps,
+  .note { max-width: 70ch; }
+
+  .lede { font-size: 1.12rem; line-height: 1.6; color: var(--ink-soft); }
+  .lede strong { color: var(--ink); font-weight: 600; }
+  .lede + .lede { margin-top: 1rem; }
+
+  section.watch {
+    margin: 3.1rem 0 0;
+    padding-top: 2.1rem;
+    border-top: 1px solid var(--rule);
+    scroll-margin-top: 1.5rem;
+  }
+  section.watch:first-of-type { margin-top: 2.4rem; }
+  .watch-kicker { display: flex; align-items: baseline; gap: 0.7rem; margin-bottom: 0.3rem; }
+  .watch-num { font-family: 'IBM Plex Mono', monospace; color: var(--brass-strong); font-size: 0.85rem; letter-spacing: 0.08em; }
+  section.watch h2 { font-size: 1.48rem; margin: 0 0 0.85rem; }
+  section.watch h3 { font-size: 1.06rem; margin: 1.55rem 0 0.55rem; color: var(--accent-strong); }
+  section.watch p { margin: 0.7rem 0; }
+  section.watch > ul, section.watch > ol:not(.steps) { padding-left: 1.3rem; margin: 0.8rem 0; }
+  section.watch li::marker { color: var(--brass-strong); }
+
+  code {
+    background: var(--code-bg);
+    padding: 0.1em 0.32em;
+    border-radius: 3px;
+    font-size: 0.86em;
+    color: var(--accent-strong);
+    white-space: nowrap;
+  }
+  /* nowrap keeps `Vector2(0, 0)` intact, but long paths and shell lines must be
+     allowed to break or they push the whole page sideways on a phone. */
+  code.path, code.cmd, code.expr { white-space: normal; overflow-wrap: anywhere; }
+  pre {
+    background: var(--pre-bg);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.9rem 1.1rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.58;
+    margin: 0.9rem 0 1.2rem;
+    tab-size: 4;
+    -moz-tab-size: 4;
+    max-width: min(100%, 100ch);
+  }
+  pre code { background: none; padding: 0; color: var(--ink); white-space: pre; }
+  .path { color: var(--brass-strong); }
+
+  pre .c { color: var(--tok-comment); font-style: italic; }
+  pre .k { color: var(--tok-keyword); }
+  pre .s { color: var(--tok-string); }
+  pre .n { color: var(--tok-number); }
+  pre .a { color: var(--tok-annot); }
+  pre .t { color: var(--tok-type); }
+
+  ol.steps {
+    counter-reset: step;
+    list-style: none;
+    padding-left: 0;
+    margin: 1rem 0 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  ol.steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 0.6rem 0.85rem 0.6rem 2.7rem;
+    background: var(--surface);
+    border-radius: 7px;
+    border: 1px solid var(--rule);
+    font-size: 0.93rem;
+  }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0.65rem;
+    top: 0.6rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--surface-raised);
+    background: var(--accent);
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  ol.steps li::marker { content: none; }
+  ol.steps b { color: var(--ink); }
+
+  kbd {
+    display: inline-block;
+    padding: 0.05em 0.45em;
+    border-radius: 4px;
+    border: 1px solid var(--rule-strong);
+    background: var(--surface-raised);
+    font-size: 0.82em;
+    box-shadow: 0 1px 0 var(--rule-strong);
+  }
+
+  .note { margin: 1.1rem 0; padding: 0.95rem 1.1rem; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 6px 6px 0; }
+  .note .note-label {
+    display: flex; align-items: center; gap: 0.45rem;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent-strong); margin-bottom: 0.35rem;
+  }
+  .note p:first-child { margin-top: 0; }
+  .note p:last-child { margin-bottom: 0; }
+  .note.feel { border-left-color: var(--brass); }
+  .note.feel .note-label { color: var(--brass-strong); }
+  .note.warn { border-left-color: var(--danger); }
+  .note.warn .note-label { color: var(--danger); }
+  .note.ref { border-left-color: var(--accent-bright); }
+  .note.ref .note-label { color: var(--accent-strong); }
+  .note.checkpoint { border-left-color: var(--accent-bright); background: var(--surface-raised); }
+  .note.checkpoint .note-label { color: var(--accent-strong); }
+
+  .icon { width: 13px; height: 13px; flex: none; }
+
+  .table-wrap { overflow-x: auto; margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; min-width: 480px; }
+  th, td { text-align: left; padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); border-bottom: 1px solid var(--rule-strong); }
+  td.num, th.num { font-variant-numeric: tabular-nums; font-family: 'IBM Plex Mono', monospace; }
+  tbody tr:hover { background: var(--surface); }
+
+  .tag { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; padding: 0.1em 0.5em; border-radius: 3px; background: var(--surface); border: 1px solid var(--rule-strong); color: var(--ink-soft); }
+  .tag.keep { color: var(--accent-strong); border-color: var(--accent); }
+  .tag.cut { color: var(--danger); border-color: var(--danger); }
+  .tag.new { color: var(--brass-strong); border-color: var(--brass); }
+  .tag.port { color: var(--accent-strong); border-color: var(--accent-bright); }
+
+  figure.plan { margin: 1.4rem 0 1.6rem; }
+  figure.plan svg { width: 100%; height: auto; display: block; border-radius: 6px; border: 1px solid var(--rule); }
+  figure.plan figcaption { margin-top: 0.55rem; font-size: 0.82rem; color: var(--ink-faint); line-height: 1.5; }
+
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li { padding-left: 1.6rem; position: relative; }
+  .checklist li::before { content: ""; position: absolute; left: 0; top: 0.35rem; width: 0.9rem; height: 0.9rem; border: 1.5px solid var(--rule-strong); border-radius: 3px; }
+
+  footer.colophon {
+    grid-column: 1 / -1;
+    padding: 2rem clamp(1.25rem, 4vw, 3rem) 3rem;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+    display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+
+  /* --- Checkpoints -------------------------------------------------------
+     These ten are the segmenting boundaries of the whole document: the points
+     where the reader stops reading and runs the thing. They were previously the
+     quietest note variant, drawn in the palette's least legible accent. They are
+     now the loudest block on the page, which is what a segment boundary is for. */
+  main { counter-reset: checkpoint; }
+  .note.checkpoint {
+    counter-increment: checkpoint;
+    border: 1px solid var(--accent);
+    border-left: 4px solid var(--accent);
+    background: var(--surface-raised);
+    border-radius: 6px;
+    padding: 1.1rem 1.2rem;
+    margin: 1.8rem 0 2rem;
+    box-shadow: 0 1px 3px var(--shadow);
+  }
+  .note.checkpoint .note-label {
+    color: var(--accent-strong);
+    font-size: 0.76rem;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.5rem;
+  }
+  .note.checkpoint .note-label::after {
+    content: "checkpoint " counter(checkpoint);
+    margin-left: auto;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+  }
+  .note.checkpoint .icon { width: 15px; height: 15px; }
+
+  /* --- Checkpoint prediction --------------------------------------------
+     The question is visible and the answer is one click away, because an
+     answer already on screen leaves nothing to retrieve. Predicting and being
+     wrong is worth more here than reading and agreeing. */
+  .note.checkpoint .predict {
+    color: var(--ink);
+    border-left: 2px solid var(--brass);
+    padding-left: 0.8rem;
+    margin: 0.8rem 0 0.9rem;
+  }
+  /* --- Commit points ------------------------------------------------------
+     A checkpoint that ran green is the only sane place to commit. These are a
+     single quiet line - a suggestion in passing, not a block that competes with
+     the checkpoint above it. */
+  .commit {
+    display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap;
+    max-width: 70ch;
+    margin: 0.4rem 0 2rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+  }
+  .commit .icon { width: 12px; height: 12px; flex: none; align-self: center; }
+  .commit code {
+    background: none; padding: 0;
+    font-size: inherit; color: inherit;
+    overflow-wrap: anywhere;
+  }
+
+  details.reveal { margin: 0; }
+  details.reveal > summary {
+    display: flex; align-items: center; gap: 0.45rem;
+    cursor: pointer;
+    list-style: none;
+    width: fit-content;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    border: 1px solid var(--rule-strong);
+    border-radius: 4px;
+    padding: 0.25rem 0.65rem;
+  }
+  details.reveal > summary::-webkit-details-marker { display: none; }
+  details.reveal > summary:hover { color: var(--ink); border-color: var(--accent); }
+  details.reveal > summary .chevron {
+    width: 10px; height: 10px; flex: none;
+    transition: transform 0.15s ease;
+  }
+  details.reveal[open] > summary { color: var(--accent-strong); border-color: var(--accent); }
+  details.reveal[open] > summary .chevron { transform: rotate(90deg); }
+  details.reveal > p { margin: 0.7rem 0 0; }
+
+  /* --- Faded explanation -------------------------------------------------
+     The "why X and not Y" notes are worth reading once and redundant on a
+     second pass - the expertise reversal effect in miniature. Collapsing them
+     lets a returning reader dial the guidance down, while keeping the summary
+     physically adjacent to the code it explains (split-attention). Warnings are
+     never collapsed: a trap you can walk into is not optional reading. */
+  details.note > summary {
+    cursor: pointer;
+    list-style: none;
+    margin-bottom: 0;
+  }
+  details.note > summary::-webkit-details-marker { display: none; }
+  details.note > summary .chevron {
+    width: 11px; height: 11px; flex: none;
+    margin-left: auto;
+    transition: transform 0.15s ease;
+  }
+  details.note[open] > summary .chevron { transform: rotate(90deg); }
+  details.note[open] > summary { margin-bottom: 0.5rem; }
+  details.note > summary:hover { color: var(--ink); }
+
+  /* --- Code blocks -------------------------------------------------------
+     Header strip carries the filename that used to live only as a comment on
+     line 1, so it stays put while the block scrolls. Line numbers are ::before
+     content and so are never caught by a selection - the block stays paste-safe,
+     which is the entire point of it. */
+  figure.code { margin: 1rem 0 1.3rem; max-width: min(100%, 100ch); }
+  figure.code > pre { margin: 0; border-radius: 0 0 6px 6px; }
+  figure.code.has-head > pre { border-top: none; }
+  .code-head {
+    display: flex; align-items: center; gap: 0.8rem;
+    padding: 0.4rem 0.7rem 0.4rem 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+  }
+  .code-name { color: var(--brass-strong); overflow-wrap: anywhere; }
+  .code-name:empty { display: none; }
+  .code-name:empty ~ .code-copy { margin-left: auto; }
+  .code-lines { color: var(--ink-faint); margin-left: auto; white-space: nowrap; }
+  .code-copy {
+    font: inherit;
+    color: var(--ink-soft);
+    background: var(--surface-raised);
+    border: 1px solid var(--rule-strong);
+    border-radius: 4px;
+    padding: 0.15rem 0.55rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .code-copy:hover { color: var(--ink); border-color: var(--accent); }
+  .code-copy[data-done] { color: var(--accent-strong); border-color: var(--accent); }
+  pre.numbered { counter-reset: srcline; padding-left: 0.6rem; }
+  pre.numbered .ln { counter-increment: srcline; }
+  pre.numbered .ln::before {
+    content: counter(srcline);
+    display: inline-block;
+    width: 2.4em;
+    margin-right: 1em;
+    text-align: right;
+    color: var(--ink-faint);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* --- Rail: where am I ---------------------------------------------------
+     Signalling the reader's own position. On a document this long the rail is
+     otherwise just a list of places you are not. */
+  nav.rail a[aria-current="location"] {
+    color: var(--ink);
+    font-weight: 600;
+    border-left-color: var(--accent);
+  }
+  nav.rail a[aria-current="location"]::before { color: var(--accent-strong); }
+
+  /* --- Checklist: retrieval, not re-reading -------------------------------
+     Twenty-seven claims you verify one at a time against a running build is
+     retrieval practice, which is worth considerably more than reading them. */
+  .checklist li.tickable { padding-left: 0; }
+  .checklist li.tickable::before { content: none; }
+  .checklist label {
+    display: flex; gap: 0.65rem; align-items: flex-start;
+    cursor: pointer;
+    padding: 0.15rem 0;
+  }
+  .checklist input[type="checkbox"] {
+    flex: none;
+    margin: 0.42rem 0 0;
+    width: 0.95rem; height: 0.95rem;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .checklist input:checked + span { color: var(--ink-faint); text-decoration: line-through; }
+  /* Flatten the code chips on a ticked row - a strikethrough dragged across a
+     row of tinted chips is unreadable, and a done item does not need emphasis. */
+  .checklist input:checked + span code { background: none; padding: 0; color: inherit; }
+  .tally {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--ink-faint);
+    margin-left: 0.6rem;
+    letter-spacing: 0.04em;
+  }
+  .tally[data-complete] { color: var(--accent-strong); }
+  .checklist-reset {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+    color: var(--ink-soft);
+    background: none;
+    border: 1px solid var(--rule-strong);
+    border-radius: 4px;
+    padding: 0.25rem 0.7rem;
+    cursor: pointer;
+    margin-top: 1.4rem;
+  }
+  .checklist-reset:hover { color: var(--ink); border-color: var(--accent); }
+
+  @media (max-width: 880px) {
+    .page { grid-template-columns: 1fr; }
+    nav.rail { position: static; max-height: none; border-right: none; border-bottom: 1px solid var(--rule); padding: 1.4rem 1.25rem; }
+    nav.rail ol { columns: 2; column-gap: 1.5rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  @media print {
+    nav.rail, .masthead-facts { display: none; }
+    .page { max-width: none; display: block; }
+    main { border-left: none; padding: 0; }
+    body { background: #fff; color: #111; font-size: 11pt; }
+    pre, .note, ol.steps li, table, figure.code, .commit { break-inside: avoid; }
+    .code-copy, .checklist-reset { display: none; }
+    details.note > summary .chevron, details.reveal > summary .chevron { display: none; }
+    details.note[open] > summary, details.note > summary { margin-bottom: 0.5rem; }
+    section.watch { break-before: page; max-width: none; }
+    section.watch:first-of-type { break-before: auto; }
+    a { text-decoration: none; color: inherit; }
+  }
+</style>
+
+<script>
+// Minimal GDScript highlighter, applied to the rendered text at load time.
+// The markup in this file stays plain <pre><code>, so the code remains
+// copy-pasteable, greppable, and readable with scripting turned off.
+(function () {
+  var KEYWORDS = ("and as assert await break breakpoint class class_name const continue " +
+    "elif else enum extends for func if in is match not or pass preload return self " +
+    "signal static super var void while yield true false null").split(" ");
+  var KW = {};
+  for (var i = 0; i < KEYWORDS.length; i++) KW[KEYWORDS[i]] = 1;
+
+  // One pass, longest match first: comment, string, annotation, number, word.
+  var TOKEN = new RegExp(
+    "(#[^\\n]*)"                                  + "|" +
+    "(\"(?:[^\"\\\\\\n]|\\\\.)*\"|'(?:[^'\\\\\\n]|\\\\.)*')" + "|" +
+    "(@[A-Za-z_]\\w*)"                            + "|" +
+    "(\\b\\d+(?:\\.\\d+)?\\b)"                    + "|" +
+    "([A-Za-z_]\\w*)", "g");
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function span(cls, text) {
+    return '<span class="' + cls + '">' + esc(text) + "</span>";
+  }
+
+  function highlight(src) {
+    var out = "", last = 0, m;
+    TOKEN.lastIndex = 0;
+    while ((m = TOKEN.exec(src)) !== null) {
+      out += esc(src.slice(last, m.index));
+      if (m[1]) out += span("c", m[1]);
+      else if (m[2]) out += span("s", m[2]);
+      else if (m[3]) out += span("a", m[3]);
+      else if (m[4]) out += span("n", m[4]);
+      else {
+        var w = m[5];
+        if (KW[w] === 1) out += span("k", w);
+        else if (/^[A-Z]/.test(w) && /[a-z]/.test(w)) out += span("t", w);
+        else out += esc(w);
+      }
+      last = m.index + m[0].length;
+    }
+    return out + esc(src.slice(last));
+  }
+
+  var LOOKS_LIKE_GD = /(^|\n)\s*(#|func |var |const |extends |class_name |@|signal |enum )/;
+
+  function run() {
+    var blocks = document.querySelectorAll("pre > code");
+    for (var i = 0; i < blocks.length; i++) {
+      var el = blocks[i], src = el.textContent;
+      if (!LOOKS_LIKE_GD.test(src)) continue;   // folder trees, CLI lines, scene trees
+      el.innerHTML = highlight(src);
+    }
+  }
+
+  // --- Code block furniture ---------------------------------------------
+  // The filename previously existed only as a "# src/..." comment on line 1:
+  // correct for pasting, useless for scanning, and it scrolls out of sight on
+  // the long blocks. Lifting it into a header keeps it in view. Line numbers
+  // are drawn with ::before so a selection never picks them up.
+  var NAME = /^\s*#\s*(res:\/\/)?((?:[\w.\-]+\/)*[\w.\-]+\.(?:gd|tscn|tres|cfg|godot))\b/;
+  var NUMBER_FROM = 40;
+
+  function dress(pre) {
+    var code = pre.firstElementChild;
+    if (!code || code.tagName !== "CODE") return;
+    var src = code.textContent;
+    var lines = src.replace(/\n$/, "").split("\n");
+    var named = NAME.exec(lines[0]);
+
+    var fig = document.createElement("figure");
+    fig.className = "code";
+    pre.parentNode.insertBefore(fig, pre);
+
+    // Every block gets a header: the whole premise of this document is that you
+    // paste these into Godot, so every one of them is worth a copy button.
+    var head = document.createElement("div");
+    head.className = "code-head";
+    head.innerHTML =
+      '<span class="code-name">' + (named ? named[2] : "") + "</span>" +
+      (lines.length >= NUMBER_FROM
+        ? '<span class="code-lines">' + lines.length + " lines</span>"
+        : "");
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "code-copy";
+    btn.textContent = "Copy";
+    btn.setAttribute("aria-label", named ? "Copy " + named[2] : "Copy this block");
+    btn.addEventListener("click", function () {
+      copy(src, btn);
+    });
+    head.appendChild(btn);
+    fig.appendChild(head);
+    fig.className += " has-head";
+    fig.appendChild(pre);
+
+    if (lines.length >= NUMBER_FROM) {
+      // Safe to split the highlighted markup on newlines: no token the
+      // highlighter emits can span one.
+      var html = code.innerHTML.replace(/\n$/, "").split("\n");
+      // The newline stays INSIDE the span. Using display:block instead would
+      // drop it from textContent, and hand-selecting the block would then
+      // paste as one run-on line - which is the one thing this file must not do.
+      code.innerHTML = html
+        .map(function (l) { return '<span class="ln">' + l + "\n</span>"; })
+        .join("");
+      pre.className += " numbered";
+    }
+  }
+
+  function copy(text, btn) {
+    function done(ok) {
+      btn.textContent = ok ? "Copied" : "Press ⌘C";
+      if (ok) { btn.setAttribute("data-done", ""); }
+      setTimeout(function () {
+        btn.textContent = "Copy";
+        btn.removeAttribute("data-done");
+      }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); },
+                                               function () { done(false); });
+      return;
+    }
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    done(ok);
+  }
+
+  // --- Rail: mark the watch the reader is actually in ---------------------
+  function scrollspy() {
+    var links = {}, targets = [];
+    var all = document.querySelectorAll('nav.rail a[href^="#"]');
+    for (var i = 0; i < all.length; i++) {
+      var id = all[i].getAttribute("href").slice(1);
+      var el = document.getElementById(id);
+      if (!el) continue;
+      links[id] = all[i];
+      targets.push(el);
+    }
+    if (!targets.length || !window.IntersectionObserver) return;
+
+    var current = null;
+    function mark(id) {
+      if (id === current) return;
+      if (current && links[current]) links[current].removeAttribute("aria-current");
+      current = id;
+      if (links[id]) links[id].setAttribute("aria-current", "location");
+    }
+
+    var seen = {};
+    var obs = new IntersectionObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        seen[entries[i].target.id] = entries[i].isIntersecting;
+      }
+      // Topmost section currently crossing the reading band wins.
+      for (var j = 0; j < targets.length; j++) {
+        if (seen[targets[j].id]) { mark(targets[j].id); return; }
+      }
+    }, { rootMargin: "-10% 0px -75% 0px" });
+
+    for (var k = 0; k < targets.length; k++) obs.observe(targets[k]);
+  }
+
+  // --- Checklist: something you tick, not something you read --------------
+  var STORE = "ships-log-checklist";
+  function store() {
+    try { return JSON.parse(localStorage.getItem(STORE)) || {}; }
+    catch (e) { return {}; }
+  }
+  function save(state) {
+    try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
+  }
+  function key(text) {
+    // Content-derived, so ticks survive edits elsewhere in the document.
+    var h = 5381;
+    for (var i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+    return "i" + (h >>> 0).toString(36);
+  }
+
+  function checklists() {
+    var lists = document.querySelectorAll("ul.checklist");
+    if (!lists.length) return;
+    var state = store();
+    var groups = [];
+
+    for (var i = 0; i < lists.length; i++) {
+      var list = lists[i], items = list.children, boxes = [];
+      for (var j = 0; j < items.length; j++) {
+        var li = items[j];
+        if (li.tagName !== "LI") continue;
+        var k = key(li.textContent.replace(/\s+/g, " ").trim());
+        var label = document.createElement("label");
+        var box = document.createElement("input");
+        box.type = "checkbox";
+        box.checked = state[k] === true;
+        var span = document.createElement("span");
+        while (li.firstChild) span.appendChild(li.firstChild);
+        label.appendChild(box);
+        label.appendChild(span);
+        li.appendChild(label);
+        li.className += " tickable";
+        box.setAttribute("data-key", k);
+        boxes.push(box);
+      }
+      if (!boxes.length) continue;
+
+      var heading = list.previousElementSibling;
+      while (heading && !/^H[2-4]$/.test(heading.tagName)) {
+        heading = heading.previousElementSibling;
+      }
+      var tally = null;
+      if (heading) {
+        tally = document.createElement("span");
+        tally.className = "tally";
+        heading.appendChild(tally);
+      }
+      groups.push({ boxes: boxes, tally: tally });
+    }
+
+    function refresh() {
+      for (var g = 0; g < groups.length; g++) {
+        var grp = groups[g], done = 0;
+        for (var b = 0; b < grp.boxes.length; b++) if (grp.boxes[b].checked) done++;
+        if (!grp.tally) continue;
+        grp.tally.textContent = done + " / " + grp.boxes.length;
+        if (done === grp.boxes.length) grp.tally.setAttribute("data-complete", "");
+        else grp.tally.removeAttribute("data-complete");
+      }
+    }
+
+    document.addEventListener("change", function (e) {
+      var box = e.target;
+      if (!box || box.type !== "checkbox" || !box.getAttribute("data-key")) return;
+      var st = store();
+      if (box.checked) st[box.getAttribute("data-key")] = true;
+      else delete st[box.getAttribute("data-key")];
+      save(st);
+      refresh();
+    });
+
+    var last = lists[lists.length - 1];
+    var reset = document.createElement("button");
+    reset.type = "button";
+    reset.className = "checklist-reset";
+    reset.textContent = "Clear all ticks";
+    reset.addEventListener("click", function () {
+      for (var g = 0; g < groups.length; g++) {
+        for (var b = 0; b < groups[g].boxes.length; b++) groups[g].boxes[b].checked = false;
+      }
+      save({});
+      refresh();
+    });
+    last.parentNode.insertBefore(reset, last.nextSibling);
+    refresh();
+  }
+
+  function enhance() {
+    run();
+    var pres = document.querySelectorAll("pre");
+    for (var i = 0; i < pres.length; i++) dress(pres[i]);
+    scrollspy();
+    checklists();
+    // A collapsed <details> prints as nothing; nobody wants a printout with
+    // the explanations missing.
+    if (window.matchMedia) {
+      window.addEventListener("beforeprint", function () {
+        var d = document.querySelectorAll("details.note, details.reveal");
+        for (var i = 0; i < d.length; i++) {
+          if (!d[i].open) { d[i].open = true; d[i].setAttribute("data-print-opened", ""); }
+        }
+      });
+      window.addEventListener("afterprint", function () {
+        var d = document.querySelectorAll("details.note[data-print-opened], details.reveal[data-print-opened]");
+        for (var i = 0; i < d.length; i++) {
+          d[i].open = false;
+          d[i].removeAttribute("data-print-opened");
+        }
+      });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", enhance);
+  } else { enhance(); }
+})();
+</script>
+
+<div class="page">
+
+  <header class="masthead">
+    <div>
+      <p class="masthead-eyebrow">Powder Monkeys</p>
+      <h1>Building the ship, plank by plank</h1>
+      <p>A hands-on, click-by-click walkthrough for building Powder Monkeys from an empty Godot&nbsp;4.7 project. Every script in full.</p>
+    </div>
+    <div class="masthead-facts">
+      <div><span>Engine</span><b>Godot 4.7</b></div>
+      <div><span>Starting point</span><b>File → New Project</b></div>
+      <div><span>Required reading</span><b>this document</b></div>
+      <div><span>Art source</span><b>kenney.nl (CC0)</b></div>
+    </div>
+  </header>
+
+  <nav class="rail" aria-label="Watches">
+    <p class="rail-title">The watches</p>
+    <ol>
+      <li><a href="#watch-0">New project</a></li>
+      <li><a href="#watch-1">The hull</a></li>
+      <li><a href="#watch-2">One pirate walks</a></li>
+      <li><a href="#watch-3">The whole crew</a></li>
+      <li><a href="#watch-4">Carrying something</a></li>
+      <li><a href="#watch-5">Stations &amp; claims</a></li>
+      <li><a href="#watch-6">Fire, flood, breach</a></li>
+      <li><a href="#watch-7">No helm this time</a></li>
+      <li><a href="#watch-8">Muster &amp; scoreboard</a></li>
+      <li><a href="#watch-9">Feel: shake and stop</a></li>
+      <li><a href="#watch-10">The sandbox</a></li>
+      <li><a href="#appendix">Assembled scripts</a></li>
+      <li><a href="#checklist">Before you sail</a></li>
+    </ol>
+    <p class="rail-note">Every watch ends with something on screen. Don't skip a "run it" checkpoint - this is a game about feel, and you can't proofread feel.</p>
+  </nav>
+
+  <main>
+    <p class="lede">
+      <strong>Powder Monkeys</strong> is a game for up to six people about keeping a ship fighting.
+      One deck, one enemy that never stops firing, and more jobs than there are hands: someone has
+      to fetch powder, someone has to ram the gun, and while they do it the hold is on fire and the
+      ship is taking water. Nobody holds it together alone - that's the whole design.
+    </p>
+    <p class="lede">
+      By the end you will have built all of it from an empty folder: the hull, the crew and their
+      controllers, the stations, the three hazards, the enemy, and the interface that lets a player
+      read the situation at a glance. Eleven watches, each ending with something you can run.
+      Every script is given complete - nothing later depends on a file this guide hasn't shown you.
+    </p>
+    <section class="watch" id="watch-0">
+      <div class="watch-kicker"><span class="watch-num">WATCH 0</span></div>
+      <h2>A new project, set up before you build anything</h2>
+      <ol class="steps">
+        <li><b>Project Manager → New/Create Project</b>. Name it <code>Powder Monkeys</code>, pick
+          an empty folder, and set the renderer to <b>Compatibility</b> - this is 2D pixel art with
+          no need for the Forward+ renderer.</li>
+        <li>Open the project. In <b>Project → Project Settings → Display → Window</b>, set
+          <b>Viewport Width</b> <code>640</code>, <b>Viewport Height</b> <code>360</code>, and
+          <b>Window Width/Height Override</b> <code>1280 × 720</code>. Under <b>Stretch</b> set
+          <b>Mode</b> <code>viewport</code>, <b>Aspect</b> <code>keep_width</code>, <b>Scale
+          Mode</b> <code>integer</code> - exact ×6 on a 4K TV, ×2 on a Steam Deck.</li>
+        <li>In <b>Rendering → Textures → Canvas Textures</b>, set <b>Default Texture Filter</b>
+          to <code>Nearest</code>.</li>
+        <li>Download the <b>Monochrome Pirates</b> and <b>Monochrome RPG</b> asset packs from
+          <b>kenney.nl</b> (both free, CC0) and unzip their <code class="path">dot-matrix/</code>
+          folders into your project under <code class="path">assets/kenney_monochrome-pirates/</code>
+          and <code class="path">assets/kenney_monochrome-rpg/</code>. Each contributes one sheet,
+          <code class="path">tilemap.png</code>, 16×16 tiles, 1px separation, 17 columns wide.</li>
+      </ol>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>How scenes actually get made, once, so the rest of this guide can say it tersely<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          <b>Creating a scene's first (root) node:</b> Scene dock → <b>Scene → New Scene</b> (or
+          the empty Scene dock shows big buttons - <b>2D Scene</b>, <b>3D Scene</b>, <b>User
+          Interface</b>, <b>Other Node</b> - click <b>Other Node</b> to search for any type by
+          name, e.g. <code>CharacterBody2D</code>). <b>Adding a child</b> to an existing node:
+          select the parent in the Scene dock, click the <b>+</b> icon in its toolbar (or
+          <b>Ctrl+A</b>), search the type, click <b>Create</b>. <b>Renaming:</b> double-click the
+          node's name in the Scene dock, or select it and press <b>F2</b>. <b>Saving:</b>
+          <b>Ctrl+S</b> the first time prompts for a path - type the full
+          <code class="path">res://...</code> path this guide gives you. <b>Attaching a script:</b>
+          select the node, click the scroll-with-a-plus icon in the Scene dock toolbar.
+          <b>Wiring a node reference in the Inspector:</b> whenever a script declares a typed node
+          export such as <code class="expr">@export var hull: TileMapLayer</code>, the Inspector shows a drag
+          target for it - drag the target node from the Scene dock straight onto that field; you
+          never type a path by hand.
+        </p>
+      </details>
+      <h3>The folders you'll fill</h3>
+      <p>
+        In the <b>FileSystem</b> dock, right-click <code class="path">res://</code> →
+        <b>Create Folder</b> and make these now, so every save path this guide gives you already
+        exists:
+      </p>
+      <pre><code>res://
+├── assets/          the two Kenney sheets
+├── src/
+│   ├── core/        autoloads (Watch 0)
+│   ├── ship/        deck, enemy ship, camera (Watches 1, 7, 9)
+│   ├── crew/        crew and carryables (Watches 2, 4)
+│   ├── stations/    cannon, pump, source stations (Watch 5)
+│   ├── hazards/     fire, leak, breach (Watch 6)
+│   └── ui/          join screen, HUD, feed, scoreboard (Watches 3, 8)
+└── tests/           layout check and unit tests (Watch 10)
+</code></pre>
+      <h3>Three empty singletons</h3>
+      <p>Create three scripts in <code class="path">src/core/</code>:</p>
+      <pre><code># src/core/game_state.gd
+extends Node
+
+signal won
+signal lost(reason: String)
+
+var settled: bool = false
+
+# Set true by the sandbox in Watch 10 so a practice session can't be lost.
+var invulnerable: bool = false
+
+func reset() -&gt; void:
+	settled = false
+
+func win() -&gt; void:
+	if settled:
+		return
+	settled = true
+	won.emit()
+
+func lose(reason: String) -&gt; void:
+	if settled or invulnerable:
+		return
+	settled = true
+	lost.emit(reason)
+</code></pre>
+      <pre><code># src/core/player_registry.gd
+extends Node
+# Filled in during Watch 3.
+</code></pre>
+      <pre><code># src/core/fx.gd
+extends Node
+# Filled in during Watch 9.
+</code></pre>
+      <p>
+        Register all three as autoloads: <b>Project → Project Settings → Autoload</b>, browse to
+        each script, leave the node name as its filename's PascalCase (<code>GameState</code>,
+        <code>PlayerRegistry</code>, <code>Fx</code>), click <b>Add</b>. Each is now reachable from
+        anywhere by that name.
+      </p>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Why <code>lose()</code> checks a flag but <code>win()</code> doesn't<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          The sandbox in Watch 10 exists so you can stand in a burning ship and study how the fire
+          spreads without the run ending under you. Putting that switch inside
+          <code>GameState.lose()</code> means it's honoured by every hazard automatically - no
+          hazard script ever has to know the sandbox exists. Winning stays possible in the sandbox,
+          because sinking the enemy is a thing you're often deliberately practising.
+        </p>
+      </details>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Why an autoload, not a regular node<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          An <b>autoload</b> is a script Godot instantiates once, before any scene loads, and keeps
+          alive for the whole run regardless of which scene is open. It's Godot's global singleton.
+          Anything that must survive a scene change - whose player is which, whether the battle is
+          won - belongs here, not on a node a scene change frees.
+        </p>
+      </details>
+      <div class="note checkpoint">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l12 8-12 8V4z"/></svg>Run it</p>
+        <p>Press F5. Godot will ask for a main scene - skip it (you don't have one yet).</p>
+        <p class="predict">You have registered three autoloads and written no scenes, so Godot has nothing to run. Will the Output panel simply be empty, or will those three scripts have run anyway?</p>
+        <details class="reveal">
+          <summary>What should happen<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+          <p>They run anyway - that is what makes them autoloads, and it is why the rest of the guide can call <code>GameState</code> from anywhere without wiring it. So the panel should be clean but not idle: no "node not found", no null instance. An error here means a path in the Autoload list is wrong, and everything you build on top of it will fail too.</p>
+        </details>
+      </div>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "chore: godot project, folders and the three autoloads"</code></p>
+    </section>
+
+    <section class="watch" id="watch-1">
+      <div class="watch-kicker"><span class="watch-num">WATCH 1</span></div>
+      <h2>The hull: paint it, don't compute it</h2>
+      <p>
+        Build the ship as data painted in the editor: Godot's <b>TileMapLayer</b> and its built-in
+        physics turn "which pixels are walkable" into something you paint once per tile, rather than
+        something you write out by hand.
+      </p>
+      <h3>Build the TileSet</h3>
+      <ol class="steps">
+        <li>New scene, root <code>Node2D</code>, rename <code>Deck</code>, save as
+          <code class="path">res://src/ship/deck.tscn</code>.</li>
+        <li>Add a child: select <code>Deck</code>, <b>Ctrl+A</b>, search <code>TileMapLayer</code>,
+          create it, rename to <code>Hull</code>.</li>
+        <li>In the Inspector, next to <b>Tile Set</b>, click <b>&lt;empty&gt; → New TileSet</b>.
+          Click the new resource to open the TileSet editor at the bottom of the screen.</li>
+        <li>In the <b>Setup</b> tab, drag in
+          <code class="path">assets/kenney_monochrome-pirates/dot-matrix/tilemap.png</code>
+          as an Atlas source (16×16 tile size, <b>Separation</b> <code>1, 1</code>); repeat for the
+          RPG pack's sheet as a second source.</li>
+        <li>Add a <b>Physics Layer</b> (Inspector → "Physics Layers" array → Add Element). In the
+          TileSet editor's <b>Select</b> tool, click each wall/rail tile and, in its per-tile
+          panel's <b>Physics</b> tab, draw a polygon over just the tile's solid band.</li>
+        <li>Add a <b>Custom Data Layer</b>: with the TileSet resource selected, Inspector →
+          <b>Custom Data Layers</b> → <b>Add Element</b>. Set its <b>Name</b> to <code>room</code>
+          and its <b>Type</b> to <b>String</b>. This is how a tile says which room it belongs to, so
+          fire and leak messages can name a place and fire can tell a room from the open corridor.</li>
+        <li>Now make <b>eight alternative tiles</b> of your floor tile, one per room - read the trap
+          below first, because this is the step the whole hazard system rests on.</li>
+      </ol>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap - custom data belongs to the tile, not to the cell you paint</p>
+        <p>
+          The natural reading of "tag each room's floor with its name" is that you paint a cell and
+          then type a room name onto <em>that cell</em>. There is no such feature, and looking for
+          it is a long, demoralising hunt through the TileMap panel.
+        </p>
+        <p>
+          Custom data is a property of a <b>tile in the TileSet</b>. Every cell painted with that
+          tile returns the same <code>room</code> string, because they are all the same tile. One
+          floor tile can therefore only ever mean one room.
+        </p>
+        <p>
+          The fix is <b>alternative tiles</b>: same texture region, separate <code>TileData</code>,
+          so each can carry its own custom data. In the TileSet editor's <b>Select</b> mode, click
+          your floor tile; the panel to the right of the atlas shows that tile's alternatives with a
+          <b>+</b> to add one. Add eight, and give each one a <code>room</code> value from the table
+          below. Leave the <em>base</em> floor tile's <code>room</code> empty - that's the one you
+          paint the corridor and the doorways with.
+        </p>
+        <p>
+          When you paint, all eight alternatives appear in the tile palette beside the base tile.
+          Picking the right one per room <em>is</em> the tagging step.
+        </p>
+      </div>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Why paint collision instead of writing it<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          Painting a physics polygon onto each tile in the TileSet editor is "which pixels are
+          floor," entered once, in the place built to hold it - every room you paint with that tile
+          inherits its collision automatically, and no script anywhere needs to describe the hull's
+          shape a second time.
+        </p>
+      </details>
+      <h3>Paint the ship</h3>
+      <p>
+        The hull is <b>32 × 13 tiles</b> (512 × 208 px at 16px tiles). Every measurement in the rest
+        of this guide - spawn points, station positions, the camera centre - is derived from this
+        exact plan, so paint it as drawn and nothing later needs adjusting:
+      </p>
+
+      <figure class="plan">
+        <svg viewBox="-18 -17 538 233" role="img" aria-labelledby="plan-title plan-desc">
+          <title id="plan-title">Deck plan of the ship</title>
+          <desc id="plan-desc">A 32 by 13 tile hull with a tapered bow at the left, a three-row
+            corridor running the length of the middle, and eight rooms in two bands above and below
+            it. Each room holds one station. A 16px tile grid is overlaid, with column numbers
+            0-31 along the top and row numbers 0-12 down the left side.</desc>
+
+          <defs>
+            <pattern id="plan-tile" width="16" height="16" patternUnits="userSpaceOnUse">
+              <path d="M16 0V16M0 16H16" fill="none"
+                    stroke="var(--ink-soft)" stroke-width="0.4" opacity="0.5"/>
+            </pattern>
+          </defs>
+
+          <!-- sea -->
+          <rect x="-4" y="-4" width="520" height="216" fill="var(--code-bg)" rx="4"/>
+
+          <!-- hull, tapered at the bow (left) -->
+          <polygon points="32,0 512,0 512,208 32,208 0,140 0,68"
+                   fill="var(--ink-faint)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+
+          <!-- corridor: cols 2-28, rows 5-7 -->
+          <rect x="32" y="80" width="432" height="48" fill="var(--surface-raised)"/>
+
+          <!-- room floors: rows 1-3 (port) and 9-11 (starboard) -->
+          <rect x="32 " y="16" width="96" height="48" fill="var(--surface-raised)"/>
+          <rect x="144" y="16" width="96" height="48" fill="var(--surface-raised)"/>
+          <rect x="256" y="16" width="96" height="48" fill="var(--surface-raised)"/>
+          <rect x="368" y="16" width="96" height="48" fill="var(--surface-raised)"/>
+          <rect x="32 " y="144" width="96" height="48" fill="var(--surface-raised)"/>
+          <rect x="144" y="144" width="96" height="48" fill="var(--surface-raised)"/>
+          <rect x="256" y="144" width="96" height="48" fill="var(--surface-raised)"/>
+          <rect x="368" y="144" width="96" height="48" fill="var(--surface-raised)"/>
+
+          <!-- one tint per room: eight alternative tiles, eight `room` values.
+               The corridor and doorways stay untinted - they are the base tile. -->
+          <g opacity="0.3">
+            <rect x="32 " y="16" width="96" height="48" fill="hsl(0 70% 50%)"/>
+            <rect x="144" y="16" width="96" height="48" fill="hsl(90 55% 38%)"/>
+            <rect x="256" y="16" width="96" height="48" fill="hsl(180 60% 40%)"/>
+            <rect x="368" y="16" width="96" height="48" fill="hsl(270 55% 55%)"/>
+            <rect x="32 " y="144" width="96" height="48" fill="hsl(225 60% 55%)"/>
+            <rect x="144" y="144" width="96" height="48" fill="hsl(315 60% 50%)"/>
+            <rect x="256" y="144" width="96" height="48" fill="hsl(45 80% 40%)"/>
+            <rect x="368" y="144" width="96" height="48" fill="hsl(135 55% 38%)"/>
+          </g>
+
+          <!-- doorways: 2 tiles wide through rows 4 and 8 -->
+          <rect x="64"  y="64" width="32" height="16" fill="var(--surface-raised)"/>
+          <rect x="176" y="64" width="32" height="16" fill="var(--surface-raised)"/>
+          <rect x="288" y="64" width="32" height="16" fill="var(--surface-raised)"/>
+          <rect x="400" y="64" width="32" height="16" fill="var(--surface-raised)"/>
+          <rect x="64"  y="128" width="32" height="16" fill="var(--surface-raised)"/>
+          <rect x="176" y="128" width="32" height="16" fill="var(--surface-raised)"/>
+          <rect x="288" y="128" width="32" height="16" fill="var(--surface-raised)"/>
+          <rect x="400" y="128" width="32" height="16" fill="var(--surface-raised)"/>
+
+          <!-- tile grid: one cell per 16px tile -->
+          <rect x="0" y="0" width="512" height="208" fill="url(#plan-tile)"/>
+          <rect x="0" y="0" width="512" height="208" fill="none"
+                stroke="var(--ink-soft)" stroke-width="0.8" opacity="0.7"/>
+
+          <!-- column and row rulers -->
+          <g font-family="'IBM Plex Mono', monospace" font-size="5.5"
+             fill="var(--ink-soft)" text-anchor="middle">
+            <text x="8" y="-8">0</text>
+            <text x="24" y="-8">1</text>
+            <text x="40" y="-8">2</text>
+            <text x="56" y="-8">3</text>
+            <text x="72" y="-8">4</text>
+            <text x="88" y="-8">5</text>
+            <text x="104" y="-8">6</text>
+            <text x="120" y="-8">7</text>
+            <text x="136" y="-8">8</text>
+            <text x="152" y="-8">9</text>
+            <text x="168" y="-8">10</text>
+            <text x="184" y="-8">11</text>
+            <text x="200" y="-8">12</text>
+            <text x="216" y="-8">13</text>
+            <text x="232" y="-8">14</text>
+            <text x="248" y="-8">15</text>
+            <text x="264" y="-8">16</text>
+            <text x="280" y="-8">17</text>
+            <text x="296" y="-8">18</text>
+            <text x="312" y="-8">19</text>
+            <text x="328" y="-8">20</text>
+            <text x="344" y="-8">21</text>
+            <text x="360" y="-8">22</text>
+            <text x="376" y="-8">23</text>
+            <text x="392" y="-8">24</text>
+            <text x="408" y="-8">25</text>
+            <text x="424" y="-8">26</text>
+            <text x="440" y="-8">27</text>
+            <text x="456" y="-8">28</text>
+            <text x="472" y="-8">29</text>
+            <text x="488" y="-8">30</text>
+            <text x="504" y="-8">31</text>
+          </g>
+          <g font-family="'IBM Plex Mono', monospace" font-size="5.5"
+             fill="var(--ink-soft)" text-anchor="middle">
+            <text x="-7" y="10">0</text>
+            <text x="-7" y="26">1</text>
+            <text x="-7" y="42">2</text>
+            <text x="-7" y="58">3</text>
+            <text x="-7" y="74">4</text>
+            <text x="-7" y="90">5</text>
+            <text x="-7" y="106">6</text>
+            <text x="-7" y="122">7</text>
+            <text x="-7" y="138">8</text>
+            <text x="-7" y="154">9</text>
+            <text x="-7" y="170">10</text>
+            <text x="-7" y="186">11</text>
+            <text x="-7" y="202">12</text>
+          </g>
+
+          <!-- masts: separate StaticBody2Ds, 1 tile each, corridor centre row -->
+          <g fill="var(--brass)">
+            <rect x="96"  y="96" width="16" height="16"/>
+            <rect x="240" y="96" width="16" height="16"/>
+            <rect x="384" y="96" width="16" height="16"/>
+          </g>
+
+          <!-- stations -->
+          <g fill="var(--accent-strong)">
+            <circle cx="72"  cy="40"  r="5"/>
+            <circle cx="184" cy="40"  r="5"/>
+            <circle cx="296" cy="40"  r="5"/>
+            <circle cx="408" cy="40"  r="5"/>
+            <circle cx="72"  cy="168" r="5"/>
+            <circle cx="184" cy="168" r="5"/>
+            <circle cx="296" cy="168" r="5"/>
+            <circle cx="408" cy="168" r="5"/>
+          </g>
+
+          <!-- room names -->
+          <g font-family="'IBM Plex Mono', monospace" font-size="6.5"
+             fill="var(--ink)" text-anchor="middle">
+            <text x="72"  y="28">foreHoldPort</text>
+            <text x="184" y="28">magazine</text>
+            <text x="296" y="28">shotLocker</text>
+            <text x="408" y="28">midHold</text>
+            <text x="72"  y="156">foreHoldStarboard</text>
+            <text x="184" y="156">waterStore</text>
+            <text x="296" y="156">pumpRoom</text>
+            <text x="408" y="156">lumberStore</text>
+          </g>
+
+          <!-- station names -->
+          <g font-family="'Source Sans 3', sans-serif" font-size="6"
+             fill="var(--accent-strong)" text-anchor="middle" font-weight="600">
+            <text x="72"  y="56">Cannon</text>
+            <text x="184" y="56">Magazine</text>
+            <text x="296" y="56">ShotLocker</text>
+            <text x="408" y="56">Cannon</text>
+            <text x="72"  y="184">Cannon</text>
+            <text x="184" y="184">WaterButt</text>
+            <text x="296" y="184">Pump</text>
+            <text x="408" y="184">LumberCrate</text>
+          </g>
+
+          <!-- corridor + camera annotations -->
+          <g font-family="'IBM Plex Mono', monospace" font-size="6"
+             fill="var(--ink-soft)" text-anchor="middle">
+            <text x="168" y="107">corridor (no room data)</text>
+            <text x="330" y="107">camera centre (256, 104)</text>
+          </g>
+        </svg>
+        <figcaption>
+          Each grid cell is one 16px tile; columns run 0-31 left to right, rows 0-12 top to
+          bottom. Rows 0, 4, 8 and 12 are wall; rows 1-3 and 9-11 are the room bands; rows
+          5-7 are the corridor. Each room has its own tint because each is painted with its
+          own alternative tile carrying its own <code>room</code> value - the corridor and
+          the doorways are left pale, because they are the base tile with no
+          <code>room</code> value at all. Brass squares are masts; green dots are stations.
+        </figcaption>
+      </figure>
+
+      <p>
+        Select <code>Hull</code> and paint directly onto the 2D viewport, choosing the tile whose
+        <code>room</code> value matches the room you're in. The <code>room</code> column below is
+        the value on the alternative tile you paint that room with - not something you type per
+        cell:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Band</th><th class="num">Rows</th><th class="num">Columns</th><th><code>room</code> value</th></tr></thead>
+          <tbody>
+            <tr><td>Port</td><td class="num">1-3</td><td class="num">2-7</td><td><code>foreHoldPort</code></td></tr>
+            <tr><td>Port</td><td class="num">1-3</td><td class="num">9-14</td><td><code>magazine</code></td></tr>
+            <tr><td>Port</td><td class="num">1-3</td><td class="num">16-21</td><td><code>shotLocker</code></td></tr>
+            <tr><td>Port</td><td class="num">1-3</td><td class="num">23-28</td><td><code>midHold</code></td></tr>
+            <tr><td>Starboard</td><td class="num">9-11</td><td class="num">2-7</td><td><code>foreHoldStarboard</code></td></tr>
+            <tr><td>Starboard</td><td class="num">9-11</td><td class="num">9-14</td><td><code>waterStore</code></td></tr>
+            <tr><td>Starboard</td><td class="num">9-11</td><td class="num">16-21</td><td><code>pumpRoom</code></td></tr>
+            <tr><td>Starboard</td><td class="num">9-11</td><td class="num">23-28</td><td><code>lumberStore</code></td></tr>
+            <tr><td>Corridor</td><td class="num">5-7</td><td class="num">2-28</td><td><em>leave blank</em></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>Rows <b>0, 4, 8, 12</b> are wall the full width; columns <b>8, 15, 22</b> are wall
+          within each band, dividing the four rooms.</li>
+        <li>Doorways two tiles wide through rows 4 and 8, at columns <b>4-5, 11-12, 18-19,
+          25-26</b> - one per room, and deliberately never in line with a mast.</li>
+        <li>The bow (left end, columns 0-1) tapers as a staircase of rail tiles; columns 29-31 are
+          the stern.</li>
+      </ul>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Tag the floor, not the walls</p>
+        <p>
+          Only the eight room alternatives carry a <code>room</code> value. The wall tile and the
+          base floor tile must both leave it empty. Watch 6 uses "has a non-empty <code>room</code>
+          string" as its entire definition of "a place a fire can burn or a leak can spring" - put a
+          room name on your wall tile and you'll get fires inside solid timber that nobody can
+          reach, everywhere, at once.
+        </p>
+        <p>
+          Quickest way to check you got it right, before you write a line of hazard code: select
+          <code>Hull</code>, and in the <b>TileMap</b> panel hover a cell - the tile's custom data
+          shows in the Inspector when you select its tile in the TileSet editor. Or just wait for
+          the Watch 10 layout check, which walks every station and fails loudly if one is standing
+          somewhere that isn't a tagged floor tile.
+        </p>
+      </div>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "chore: hull tileset and the painted deck"</code></p>
+
+      <h3>The three masts</h3>
+      <p>
+        Masts are <em>not</em> part of the TileMap - they're separate <b>StaticBody2D</b> children
+        of <code>Deck</code>, so they block movement without being floor. Add three, at these exact
+        positions, each with a <b>CollisionShape2D</b> holding a <b>RectangleShape2D</b> of size
+        <code>16 × 16</code>:
+      </p>
+      <pre><code>MastFore     position (104, 104)     # tile column 6
+MastMain     position (248, 104)     # tile column 15
+MastMizzen   position (392, 104)     # tile column 24
+</code></pre>
+      <p>
+        Each sits in the centre row of the 3-row corridor, leaving one clear tile of lane above and
+        below. Size the collider to the mast's pole only - not the whole illustrated mast-and-sail
+        artwork, which is much wider than the thing crew actually bump into.
+      </p>
+      <div class="note feel">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Tune this - corridor squeeze</p>
+        <p>
+          A mast's collider should be one tile wide in a 3-row corridor, leaving a clear lane on
+          either side. Widen it and a crew member bounces off it instead of squeezing past. Walk a
+          test character past every mast, both directions, before moving on.
+        </p>
+      </div>
+      <h3>Add a camera</h3>
+      <ol class="steps">
+        <li>Add a <code>Camera2D</code> child of <code>Deck</code>, and name it
+          <code>Camera2D</code>. Set its <b>Position</b> to the hull's centre: for the 32 × 13-tile
+          hull at 16px tiles, that is exactly <code>(256, 104)</code>.</li>
+        <li>Leave <b>Enabled</b> ticked in the Inspector - it is on by default, and a single
+          enabled <code>Camera2D</code> becomes the active one - which is what the shake effect in
+          Watch 9 reaches for. (Godot 3's <code>current</code> property is gone in
+          Godot 4; <code>enabled</code> replaced it, alongside the
+          <code class="expr">make_current()</code> method for switching camera at runtime.)</li>
+      </ol>
+      <div class="note checkpoint">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l12 8-12 8V4z"/></svg>Run it</p>
+        <p>Set <code class="path">deck.tscn</code> as the main scene (Project Settings → Application → Run → Main Scene), press F5.</p>
+        <p class="predict">The hull is tile data with collision painted onto the tiles, and there is no crew yet. What should be on screen, and should any of it move?</p>
+        <details class="reveal">
+          <summary>What should happen<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+          <p>The painted hull, centred by the camera, and nothing moving - there is no crew until Watch 2. A blank or off-centre deck means the <code>TileMapLayer</code> is not where the camera expects it.</p>
+        </details>
+      </div>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: the three masts and the camera"</code></p>
+    </section>
+
+    <section class="watch" id="watch-2">
+      <div class="watch-kicker"><span class="watch-num">WATCH 2</span></div>
+      <h2>Get one pirate walking before you get six</h2>
+      <p>
+        Multiplayer input and a join lobby are real complexity worth deferring. Get a single
+        <code>CharacterBody2D</code> walking on plain WASD first - that proves the collision from
+        Watch 1 actually works, and it's much smaller to debug alone.
+      </p>
+      <ol class="steps">
+        <li>New scene, root <code>CharacterBody2D</code>, rename <code>Crew</code>, save as
+          <code class="path">res://src/crew/crew.tscn</code>.</li>
+        <li>Add a child <code>Sprite2D</code> - set its <b>Texture</b> to the pirates sheet, enable
+          <b>Region</b> in the Inspector's Texture Region section, and set the region rect to one
+          16×16 cell.</li>
+        <li>Add a child <code>CollisionShape2D</code>. In the Inspector, new
+          <code>CircleShape2D</code>, radius <code>6</code>.</li>
+        <li>Select the <code>Crew</code> root node. In the Inspector under
+          <b>CharacterBody2D → Motion Mode</b>, change the value from
+          <code>Grounded</code> to <b>Floating</b>. The default
+          <code>Grounded</code> mode assumes gravity and produces wrong diagonal-wall
+          behaviour in a top-down game - <code>Floating</code> is required for any
+          2D top-down movement.</li>
+        <li>Attach a script to the <code>Crew</code> root.</li>
+      </ol>
+      <pre><code># src/crew/crew.gd
+extends CharacterBody2D
+
+const SPEED := 90.0
+
+func _physics_process(_delta: float) -&gt; void:
+	var move := Vector2.ZERO
+	move.x = int(Input.is_key_pressed(KEY_D)) - int(Input.is_key_pressed(KEY_A))
+	move.y = int(Input.is_key_pressed(KEY_S)) - int(Input.is_key_pressed(KEY_W))
+	velocity = move.normalized() * SPEED
+	move_and_slide()
+</code></pre>
+      <p>
+        Drag <code class="path">crew.tscn</code> into <code class="path">deck.tscn</code> as a
+        child of <code>Deck</code>, positioned somewhere on the painted corridor. This one is
+        <em>temporary</em> - Watch 3 spawns the real crew at runtime, and you'll delete this
+        instance there.
+      </p>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Why <code>move_and_slide()</code> instead of writing your own collision<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          <b>CharacterBody2D</b> is Godot's kinematic body: set <code>velocity</code>, call
+          <code>move_and_slide()</code> once a physics frame, and it resolves collision against
+          whatever physics bodies are nearby - including the polygons painted in Watch 1 - sliding
+          along a wall instead of stopping dead.
+        </p>
+      </details>
+      <div class="note checkpoint">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l12 8-12 8V4z"/></svg>Run it</p>
+        <p>Press F5 and walk the pirate about with WASD.</p>
+        <p class="predict">You painted collision onto tiles rather than writing it out. So what happens when you take a mast at an angle - a dead stop, or a slide past it? Decide, then look.</p>
+        <details class="reveal">
+          <summary>What should happen<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+          <p>It stops or slides, never passes through, and it slides past a mast taken at an angle. Walking straight through means the physics layer never got painted onto that tile - the collision belongs to the tile in the TileSet, not to the cell you painted with it.</p>
+        </details>
+      </div>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: one crew member walking, with tile collision"</code></p>
+    </section>
+
+    <section class="watch" id="watch-3">
+      <div class="watch-kicker"><span class="watch-num">WATCH 3</span></div>
+      <h2>The whole crew, and the join screen</h2>
+      <p>
+        Now widen from one keyboard-controlled body to up to six, each on its own device, with a
+        lobby to claim a slot before the battle starts. This watch also nails down exactly which key
+        or button <em>is</em> "interact" and "join" - the rest of the game depends on both.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Device</th><th>Move</th><th>Join</th><th>Interact</th></tr></thead>
+          <tbody>
+            <tr><td>Keyboard - WASD</td><td class="num">W A S D</td><td class="num">Space</td><td class="num">E</td></tr>
+            <tr><td>Keyboard - Arrows</td><td class="num">↑ ← ↓ →</td><td class="num">Enter</td><td class="num">Shift</td></tr>
+            <tr><td>Gamepad</td><td class="num">left stick</td><td class="num">A (button 0)</td><td class="num">X (button 2)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>One device id per player</h3>
+      <p>
+        Everything downstream - crew members, stations, the join screen - identifies a player by a
+        single integer, their <b>device id</b>. Gamepads bring their own: Godot numbers them
+        <code>0</code>, <code>1</code>, <code>2</code> as they connect. The keyboard is the awkward
+        one. Two people are going to share it, one on WASD and one on the arrows, and Godot reports
+        every key from a single anonymous keyboard - there is no per-key device index the way there
+        is for gamepads. So invent two: <code>-1</code> for the WASD half and <code>-2</code> for
+        the arrows half. They are negative precisely so they can never collide with a real gamepad.
+      </p>
+      <p>
+        That gives one rule the rest of the build can lean on: <b>a device id names a player, and a
+        player has exactly one device id.</b> Two crew on one keyboard stop being a special case
+        anywhere except the twelve minutes you are about to spend in the Input Map.
+      </p>
+
+      <h3>Author the actions</h3>
+      <p>
+        Open <b>Project → Project Settings → Input Map</b> and add these eighteen actions. The two
+        keyboard schemes are written out in full, because they are genuinely different bindings.
+        The six <code>*_pad</code> actions are a <em>template</em> - bind them against any one
+        controller and the registry will clone them per device at runtime.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Action</th><th>WASD (<code>_wasd</code>)</th><th>Arrows (<code>_arrows</code>)</th><th>Gamepad (<code>_pad</code>)</th></tr></thead>
+          <tbody>
+            <tr><td><code>move_left_*</code></td><td class="num">A</td><td class="num">←</td><td class="num">Left Stick Left</td></tr>
+            <tr><td><code>move_right_*</code></td><td class="num">D</td><td class="num">→</td><td class="num">Left Stick Right</td></tr>
+            <tr><td><code>move_up_*</code></td><td class="num">W</td><td class="num">↑</td><td class="num">Left Stick Up</td></tr>
+            <tr><td><code>move_down_*</code></td><td class="num">S</td><td class="num">↓</td><td class="num">Left Stick Down</td></tr>
+            <tr><td><code>interact_*</code></td><td class="num">E</td><td class="num">Shift</td><td class="num">X (button 2)</td></tr>
+            <tr><td><code>join_*</code></td><td class="num">Space</td><td class="num">Enter</td><td class="num">A (button 0)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Set the <b>deadzone</b> on the four <code>move_*_pad</code> actions to <code>0.25</code>.
+        The default of 0.5 is tuned for menu navigation and makes a crew member feel like they are
+        wading before they have even reached the water.
+      </p>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Why named actions and not raw key reads<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          You could skip all of this and poll <code>Input.is_key_pressed(KEY_E)</code> directly. It
+          is fewer clicks today and it costs you three things. Rebinding a key becomes a code
+          change rather than an editor change. Stick deadzones and diagonal normalisation become
+          yours to get right instead of the engine's. And, worst, you have to hand-roll
+          "just pressed" - which means storing last frame's state and diffing it, which means
+          getting the frame timing right, which is a bug you do not want to own in a game where
+          every interaction in every later watch runs through a single button.
+        </p>
+        <p>
+          <code>Input.is_action_just_pressed()</code> already solves that last one properly: it
+          records the frame of a press against <em>both</em> the render clock and the physics clock,
+          and answers against whichever one you are calling from. It is a pure query, so a station
+          and a crew member's own pickup handler can both ask about the same press, in any order,
+          and both get the truth.
+        </p>
+      </details>
+
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "chore: author the eighteen input actions"</code></p>
+
+      <h3>The player registry</h3>
+      <p>
+        One autoload owns two jobs: mapping a device id onto its set of actions, and keeping the
+        roster of who has joined. Create <code class="path">res://src/core/player_registry.gd</code>
+        and register it as an autoload named <code>PlayerRegistry</code>.
+      </p>
+      <pre><code># src/core/player_registry.gd
+extends Node
+
+const KEYBOARD_WASD := -1
+const KEYBOARD_ARROWS := -2
+
+const MAX_PLAYERS := 6
+const ACCENT_COLORS: Array[Color] = [
+	Color("e05252"), Color("4f8fe0"), Color("4fbf6b"),
+	Color("e0c24f"), Color("b06fe0"), Color("e08a3d"),
+]
+
+# The two hand-authored keyboard halves. Everything else is a gamepad and gets
+# its suffix generated from its device number.
+const SCHEME_SUFFIX := {
+	KEYBOARD_WASD: "wasd",
+	KEYBOARD_ARROWS: "arrows",
+}
+const PAD_ACTIONS := [
+	"move_left", "move_right", "move_up", "move_down", "interact", "join",
+]
+
+var _players: Dictionary = {}  # device_id -&gt; { device_id, number, color }
+
+func _ready() -&gt; void:
+	for device_id in Input.get_connected_joypads():
+		_bind_pad(device_id)
+	Input.joy_connection_changed.connect(_on_joy_connection_changed)
+
+func _on_joy_connection_changed(device_id: int, connected: bool) -&gt; void:
+	if connected:
+		_bind_pad(device_id)
+
+# Clone the six *_pad template actions into a per-device set - interact_pad0,
+# interact_pad1, ... - with every event retargeted at that one controller.
+# One set authored in the editor becomes one set per pad, and Input does the
+# rest.
+func _bind_pad(device_id: int) -&gt; void:
+	for action in PAD_ACTIONS:
+		var template := "%s_pad" % action
+		var per_device := "%s_pad%d" % [action, device_id]
+		if InputMap.has_action(per_device):
+			continue
+		InputMap.add_action(per_device, InputMap.action_get_deadzone(template))
+		for event in InputMap.action_get_events(template):
+			var copy: InputEvent = event.duplicate()
+			copy.device = device_id
+			InputMap.action_add_event(per_device, copy)
+
+func suffix(device_id: int) -&gt; String:
+	return SCHEME_SUFFIX.get(device_id, "pad%d" % device_id)
+
+func has_device(device_id: int) -&gt; bool:
+	return InputMap.has_action("interact_%s" % suffix(device_id))
+
+func connected_devices() -&gt; Array:
+	var out: Array = [KEYBOARD_WASD, KEYBOARD_ARROWS]
+	out.append_array(Input.get_connected_joypads())
+	return out
+
+func move_vector(device_id: int) -&gt; Vector2:
+	if not has_device(device_id):
+		return Vector2.ZERO
+	var s := suffix(device_id)
+	return Input.get_vector(
+		"move_left_%s" % s, "move_right_%s" % s,
+		"move_up_%s" % s, "move_down_%s" % s,
+	)
+
+func is_interact_pressed(device_id: int) -&gt; bool:
+	return has_device(device_id) and Input.is_action_pressed("interact_%s" % suffix(device_id))
+
+func is_interact_just_pressed(device_id: int) -&gt; bool:
+	return has_device(device_id) and Input.is_action_just_pressed("interact_%s" % suffix(device_id))
+
+func is_join_just_pressed(device_id: int) -&gt; bool:
+	return has_device(device_id) and Input.is_action_just_pressed("join_%s" % suffix(device_id))
+
+func is_joined(device_id: int) -&gt; bool:
+	return _players.has(device_id)
+
+func join(device_id: int) -&gt; Dictionary:
+	if _players.has(device_id):
+		return _players[device_id]
+	if _players.size() &gt;= MAX_PLAYERS:
+		return {}
+	var number := _lowest_free_number()
+	var player := { "device_id": device_id, "number": number, "color": ACCENT_COLORS[number - 1] }
+	_players[device_id] = player
+	return player
+
+func players() -&gt; Array:
+	var out := _players.values()
+	out.sort_custom(func(a, b): return a.number &lt; b.number)
+	return out
+
+# Used only by the sandbox (Watch 10): board everyone who has a device plugged
+# in, without anyone having to visit the join screen.
+func join_all_connected() -&gt; Array:
+	for device_id in connected_devices():
+		join(device_id)
+	return players()
+
+func reset() -&gt; void:
+	_players.clear()
+
+func _lowest_free_number() -&gt; int:
+	var taken := {}
+	for p in _players.values():
+		taken[p.number] = true
+	for n in range(1, MAX_PLAYERS + 1):
+		if not taken.has(n):
+			return n
+	return -1
+</code></pre>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Why <code>_bind_pad()</code> generates actions instead of you authoring them<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          A gamepad event in the Input Map carries a device index, so the fully manual version of
+          this works: author <code>interact_pad0</code> through <code>interact_pad5</code> by hand,
+          six actions each, thirty-six rows in the editor. It is the standard approach and it is
+          miserable to maintain - change the interact button and you are editing it six times,
+          and the sixth is the one you will miss.
+        </p>
+        <p>
+          <code>InputMap</code> is writable at runtime, so bind the button <em>once</em> and let
+          fifteen lines do the copying. <code>event.duplicate()</code> gives you a fresh event,
+          setting <code>.device</code> pins it to one controller, and
+          <code>action_get_deadzone()</code> carries your 0.25 across so the generated actions feel
+          like the one you tuned.
+        </p>
+      </details>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap - bind on connect, not just at startup</p>
+        <p>
+          The obvious version of <code>_ready()</code> loops over
+          <code>Input.get_connected_joypads()</code> and stops there. It works perfectly, right up
+          until someone plugs a controller in <em>after</em> the game has launched - which, for a
+          six-player party game, is most of them.
+        </p>
+        <p>
+          The failure is quiet and it points at the wrong thing.
+          <code>connected_devices()</code> asks the hardware, so the new pad shows up in the list
+          immediately and the join screen happily offers it a slot. But no
+          <code>join_pad3</code> action was ever generated, so <code>has_device()</code> is false
+          and every press is dropped. The player sees a lobby that lists their controller and
+          ignores it, and concludes their controller is broken.
+        </p>
+        <p>
+          Hence <code>Input.joy_connection_changed</code>. It fires on every plug and unplug;
+          <code>_bind_pad()</code> is idempotent, so reconnecting the same pad is harmless.
+        </p>
+      </div>
+
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: per-device player registry"</code></p>
+
+      <h3>Rewrite <code class="path">crew.gd</code> to read a device</h3>
+      <pre><code># src/crew/crew.gd
+extends CharacterBody2D
+
+const SPEED := 90.0
+
+@export var device_id: int = PlayerRegistry.KEYBOARD_WASD
+@export var accent: Color = Color.WHITE
+
+@onready var _sprite: Sprite2D = $Sprite2D
+
+func _ready() -&gt; void:
+	add_to_group("crew")
+	_sprite.modulate = accent
+
+func _physics_process(_delta: float) -&gt; void:
+	velocity = PlayerRegistry.move_vector(device_id) * SPEED
+	move_and_slide()
+</code></pre>
+      <p>
+        No normalising, no deadzone, no clamp. <code>Input.get_vector()</code> applies the action's
+        deadzone and caps the result at length 1, so a diagonal on the keyboard is not faster than
+        a straight line and a half-tilted stick still walks at half speed.
+      </p>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Why the colour matters more than it looks<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          Six identical white pirates in a corridor is unplayable - not "a bit plain", genuinely
+          unplayable, because you cannot find yourself. <code>modulate</code> tints the whole
+          sprite, so one monochrome Kenney frame becomes six readable characters for free. The
+          colours come straight from <code>ACCENT_COLORS</code>, assigned at join time, so a
+          player's slot number and their colour never disagree.
+        </p>
+      </details>
+      <p>
+        Everything that reads input in this build does it from <code>_physics_process</code>, next
+        to the movement it affects. That is a consistency choice rather than a correctness one -
+        <code>Input</code> answers correctly from either clock - but it keeps every gameplay script
+        on one timeline. Purely visual things like <code class="path">shake_camera.gd</code> and
+        <code class="path">hud.gd</code> stay in <code>_process</code>, where they belong.
+      </p>
+
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: crew move from their own device"</code></p>
+
+      <h3>The join screen</h3>
+      <ol class="steps">
+        <li>New scene, root <code>Control</code> (Layout → <b>Full Rect</b>), rename
+          <code>JoinScreen</code>, save as <code class="path">res://src/ui/join_screen.tscn</code>.</li>
+        <li>Add a <code>Label</code> for the title, and an <code>HBoxContainer</code> named
+          <code>Slots</code> holding six <code>PanelContainer</code> children, each with a
+          <code>Label</code> for "P1"-"P6" and a second <code>Label</code> named <code>Status</code>
+          for "press to join" / "joined".</li>
+        <li>Attach this script to <code>JoinScreen</code>:</li>
+      </ol>
+      <pre><code># src/ui/join_screen.gd
+extends Control
+
+func _ready() -&gt; void:
+	# Paint the slots once up front, or every slot sits blank until the first
+	# person joins and the player before them wonders if the game is broken.
+	_refresh()
+
+func _physics_process(_delta: float) -&gt; void:
+	for device_id in PlayerRegistry.connected_devices():
+		if PlayerRegistry.is_join_just_pressed(device_id) and not PlayerRegistry.is_joined(device_id):
+			PlayerRegistry.join(device_id)
+			_refresh()
+	if PlayerRegistry.players().size() &gt;= 2:
+		for player in PlayerRegistry.players():
+			if PlayerRegistry.is_interact_just_pressed(player.device_id):
+				get_tree().change_scene_to_file("res://src/ship/deck.tscn")
+				return
+
+func _refresh() -&gt; void:
+	var joined_numbers := {}
+	for p in PlayerRegistry.players():
+		joined_numbers[p.number] = true
+	for i in range(6):
+		var slot := $Slots.get_child(i)
+		slot.get_node("Status").text = "JOINED" if joined_numbers.has(i + 1) else "PRESS TO JOIN"
+</code></pre>
+      <ol class="steps">
+        <li>Set <code class="path">join_screen.tscn</code> as the main scene.</li>
+        <li><b>Delete the <code>Crew</code> instance you dropped into
+          <code class="path">deck.tscn</code> in Watch 2.</b> From here on the roster is spawned at
+          runtime; leave it in place and you get a spare pirate wired to the same WASD keys as
+          player one, shadowing their every move.</li>
+        <li>Attach a script to <code>Deck</code> (the root of <code class="path">deck.tscn</code>)
+          that spawns the joined roster:</li>
+      </ol>
+      <pre><code># src/ship/deck.gd
+extends Node2D
+
+const CREW_SCENE := preload("res://src/crew/crew.tscn")
+# Corridor rows 5 and 7, clear of all three masts (columns 6, 15, 24).
+const SPAWN_POSITIONS: Array[Vector2] = [
+	Vector2(168, 88), Vector2(168, 120), Vector2(200, 88),
+	Vector2(200, 120), Vector2(296, 88), Vector2(296, 120),
+]
+
+func _ready() -&gt; void:
+	var roster := PlayerRegistry.players()
+	for i in range(roster.size()):
+		var player = roster[i]
+		var crew := CREW_SCENE.instantiate()
+		crew.device_id = player.device_id
+		crew.accent = player.color
+		add_child(crew)
+		crew.position = SPAWN_POSITIONS[i % SPAWN_POSITIONS.size()]
+</code></pre>
+      <div class="note checkpoint">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l12 8-12 8V4z"/></svg>Run it</p>
+        <p>Press F5 from the join screen. Join with both keyboard schemes (Space, then Enter), then press E or Shift to sail.</p>
+        <p class="predict">Two players are sharing one keyboard, and <code>PlayerRegistry</code> keys everyone by device id with a synthetic id per keyboard half. Press Space and then Enter: do you get one player who changed their mind, or two?</p>
+        <details class="reveal">
+          <summary>What should happen<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+          <p>Two. Both slots should flip to "JOINED", and on the deck each crew member answers only to its own keys. One player means the two keyboard schemes are collapsing onto the same device id - check that <code>join_wasd</code> and <code>join_arrows</code> are two separate actions and that neither has picked up the other's key.</p>
+        </details>
+      </div>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: join screen, and spawn the roster on the deck"</code></p>
+
+      <div class="note feel">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Tune this - soft repulsion between crew</p>
+        <p>
+          Crew shoving through each other via collision alone feels sticky. Add a small extra push
+          in <code>_physics_process</code>, before <code>move_and_slide()</code>: for every other
+          member of the <code>"crew"</code> group within ~20px, add a vector pointing away from
+          them, scaled up the closer they are, strength around 40. Too strong and crew bounce apart
+          like magnets; too weak and a doorway jam feels like concrete.
+        </p>
+      </div>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: soft repulsion between crew"</code></p>
+    </section>
+    <section class="watch" id="watch-4">
+      <div class="watch-kicker"><span class="watch-num">WATCH 4</span></div>
+      <h2>Carrying something</h2>
+      <p>
+        Nothing past this point works without this: powder, shot, planks and buckets all need to be
+        objects a crew member can pick up, carry, and hand off. Build it now, before stations need
+        it.
+      </p>
+      <ol class="steps">
+        <li>New scene, root <code>Node2D</code>, rename <code>Carryable</code>, save as
+          <code class="path">res://src/crew/carryable.tscn</code>. Add a child
+          <code>Sprite2D</code> named <code>Sprite2D</code>, and set its <b>Texture</b> to the
+          pirates sheet - the script sets the region itself, so you don't need to configure one
+          here.</li>
+        <li>Attach a script to the root.</li>
+      </ol>
+      <pre><code># src/crew/carryable.gd
+class_name Carryable
+extends Node2D
+
+enum Kind { POWDER, SHOT, PLANK, BUCKET_WATER, BUCKET_EMPTY }
+
+const TILE := 16
+
+# One atlas cell per Kind, in enum order. These are placeholders - open the
+# sheet, pick five cells you can tell apart at a glance, and set them in the
+# Inspector. Being able to see what you're carrying is not optional.
+@export var atlas_cells: Array[Vector2i] = [
+	Vector2i(0, 0),   # POWDER
+	Vector2i(1, 0),   # SHOT
+	Vector2i(2, 0),   # PLANK
+	Vector2i(3, 0),   # BUCKET_WATER
+	Vector2i(4, 0),   # BUCKET_EMPTY
+]
+
+@export var kind: Kind = Kind.POWDER
+var held: bool = false
+
+@onready var _sprite: Sprite2D = $Sprite2D
+
+func _ready() -&gt; void:
+	add_to_group("carryables")
+	_refresh_icon()
+
+# Always change kind through here, never by assigning .kind directly - the
+# bucket changes kind mid-game and its icon has to follow.
+func set_kind(next: Kind) -&gt; void:
+	kind = next
+	_refresh_icon()
+
+func _refresh_icon() -&gt; void:
+	if _sprite == null or int(kind) &gt;= atlas_cells.size():
+		return
+	var cell: Vector2i = atlas_cells[int(kind)]
+	_sprite.region_enabled = true
+	_sprite.region_rect = Rect2(Vector2(cell * TILE), Vector2(TILE, TILE))
+
+func pick_up(hold_point: Node2D) -&gt; void:
+	held = true
+	get_parent().remove_child(self)
+	hold_point.add_child(self)
+	position = Vector2.ZERO
+
+func drop(world: Node2D, at: Vector2) -&gt; void:
+	held = false
+	get_parent().remove_child(self)
+	world.add_child(self)
+	global_position = at
+</code></pre>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Why <code>set_kind()</code> and not just <code>kind = ...</code><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          A full bucket becomes an empty one the instant it douses a fire, and an empty one becomes
+          full again at the water butt. If the icon doesn't change with it, a player sprinting back
+          to a fire with an empty bucket has no way to know - the single most confusing bug you can
+          ship in a game about fetching things. Routing every change through one setter is what
+          makes that impossible to forget.
+        </p>
+        <p>
+          <code>drop()</code> sets <code>global_position</code> rather than <code>position</code>
+          for the same class of reason: <code>position</code> is relative to the new parent, so it
+          would only be correct while <code>Deck</code> happens to sit at the origin.
+        </p>
+      </details>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: carryable items with per-kind icons"</code></p>
+
+      <p>
+        Give <code class="path">crew.tscn</code> a child <code>Marker2D</code> named
+        <code>HoldPoint</code> (roughly where a held item should sit, e.g. 8px below the sprite),
+        then extend <code class="path">crew.gd</code> with pickup/drop and a station-priority check:
+      </p>
+      <pre><code># src/crew/crew.gd  (extended)
+extends CharacterBody2D
+
+const SPEED := 90.0
+const PICKUP_RANGE := 14.0
+
+@export var device_id: int = PlayerRegistry.KEYBOARD_WASD
+@export var accent: Color = Color.WHITE
+
+var held_item: Carryable = null
+
+@onready var _sprite: Sprite2D = $Sprite2D
+@onready var hold_point: Node2D = $HoldPoint
+
+func _ready() -&gt; void:
+	add_to_group("crew")
+	_sprite.modulate = accent
+
+func _physics_process(_delta: float) -&gt; void:
+	velocity = PlayerRegistry.move_vector(device_id) * SPEED
+	move_and_slide()
+
+	_handle_interact()
+
+func _handle_interact() -&gt; void:
+	if not PlayerRegistry.is_interact_just_pressed(device_id):
+		return
+	# Ask everything, then act on the strongest claim - not on the first one
+	# the group happens to hand back. See the trap below.
+	var winner: Node = null
+	var best := -1
+	for station in get_tree().get_nodes_in_group("stations"):
+		if not station.claims_interact(self):
+			continue
+		if station.interact_priority &gt; best:
+			best = station.interact_priority
+			winner = station
+	if winner:
+		winner.perform_interact(self)
+		return
+	_pick_up_or_drop()
+
+func _pick_up_or_drop() -&gt; void:
+	if held_item:
+		held_item.drop(get_parent(), global_position)
+		held_item = null
+		return
+	var nearest := _nearest_loose_item()
+	if nearest:
+		nearest.pick_up(hold_point)
+		held_item = nearest
+
+func _nearest_loose_item() -&gt; Carryable:
+	var best: Carryable = null
+	var best_dist := PICKUP_RANGE
+	for item in get_tree().get_nodes_in_group("carryables"):
+		if item.held:
+			continue
+		var d := global_position.distance_to(item.global_position)
+		if d &lt;= best_dist:
+			best = item
+			best_dist = d
+	return best
+</code></pre>
+      <div class="note ref">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5a2 2 0 0 1 2-2h8.5L20 9.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6"/></svg>Claim, then act - two separate steps</p>
+        <p>
+          <code>_handle_interact()</code> asks every member of the <code>"stations"</code> group
+          - built in Watch 5 - whether it wants this press <em>before</em> generic pickup/drop
+          touches the button at all. The station that wins both gets to <em>act</em>
+          (<code>perform_interact</code>) and stops <code>Crew</code> from also treating the same
+          press as a pickup. A predicate that only vetoes without a matching action would leave
+          every station "interested" but nothing ever actually loading a cannon or dousing a fire -
+          claiming and performing are two different jobs, and both matter.
+        </p>
+        <p>
+          Note that the loop finds the <em>highest-priority</em> claimer rather than stopping at the
+          first. That matters more than it looks - see below.
+        </p>
+        <p>
+          The <code>"stations"</code> group is empty until Watch 5 - the loop simply iterates
+          zero items and falls straight through to <code>_pick_up_or_drop()</code>. This is
+          intentional: the code is already in its final shape; the group just isn't populated yet.
+        </p>
+      </div>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap - "first one that says yes" is not a rule, it's a coin toss</p>
+        <p>
+          The obvious loop stops at the first claimer and calls it done.
+          <code>get_nodes_in_group()</code> returns nodes in whatever order the tree happens to hold
+          them, so "first" is not a decision you made - it's scene-dock ordering leaking into your
+          rules.
+        </p>
+        <p>
+          It bites the moment two things legitimately want the same press. A fire can break out on
+          any floor cell, including the cell a station is standing on. Then a crew member holding a
+          full bucket, stood in the flames at the water butt, presses interact - and the water butt
+          claims it first, because it sorts earlier. <b>The fire cannot be put out at all.</b> It is
+          roughly a one-in-twenty outbreak, it looks like the bucket is broken, and it will not
+          reproduce when you go looking for it.
+        </p>
+        <p>
+          Hence <code>interact_priority</code>: gather every claim, then act on the strongest. An
+          emergency outranks a chore, and the outcome no longer depends on the order nodes were
+          added to the scene.
+        </p>
+      </div>
+      <div class="note checkpoint">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l12 8-12 8V4z"/></svg>Run it</p>
+        <p>Drop three or four <code class="path">carryable.tscn</code> instances loose on the deck, walk up to one and press interact.</p>
+        <p class="predict">Picking something up is a reparent, not a copy. What happens to the one lying on the floor?</p>
+        <details class="reveal">
+          <summary>What should happen<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+          <p>It snaps into your hand and moves with you - there is only ever one of it. Press interact again and it drops at your feet. Seeing two means you instanced instead of reparenting.</p>
+        </details>
+      </div>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: crew pick up and drop"</code></p>
+    </section>
+
+    <section class="watch" id="watch-5">
+      <div class="watch-kicker"><span class="watch-num">WATCH 5</span></div>
+      <h2>Stations, and who gets the button</h2>
+      <ol class="steps">
+        <li>New scene, root <code>Area2D</code>, rename <code>Station</code>, save as
+          <code class="path">res://src/stations/station.tscn</code>.</li>
+        <li>Add a child <code>CollisionShape2D</code> with a <code>CircleShape2D</code> - its
+          radius <em>is</em> the reach, read directly by the script below, so dragging this shape's
+          radius handle in the 2D viewport is the actual tuning control. Set it to <b>14</b>.</li>
+        <li>Add a child <code>Sprite2D</code> named <code>Sprite2D</code>. Set its <b>Texture</b> to
+          the pirates sheet, tick <b>Region → Enabled</b>, and leave the region rect for now - each
+          inherited station sets its own below. <b>Do not skip this.</b> A station is a bare
+          <code>Area2D</code> otherwise, and an <code>Area2D</code> draws nothing: you get a deck
+          with invisible magazines and an invisible pump that players can only find by walking the
+          hull and watching for a prompt that isn't there either.</li>
+        <li>Attach a script, and add the node to a group: <b>Node</b> dock → <b>Groups</b> tab, type
+          <code>stations</code>, <b>Add</b>.</li>
+      </ol>
+      <pre><code># src/stations/station.gd
+class_name Station
+extends Area2D
+
+var disabled: bool = false
+
+# Can a cannonball knock this station out? True for everything except the
+# store that supplies the planks used to repair it - see the trap in Watch 6.
+@export var breachable: bool = true
+
+# When two things both want the same press, the higher number wins. Ordinary
+# work is 0; the hazards in Watch 6 are 10, because putting out a fire beats
+# fetching a barrel every single time.
+var interact_priority: int = 0
+
+@onready var _reach_shape: CircleShape2D = $CollisionShape2D.shape
+
+func crew_is_near(crew: Node2D) -&gt; bool:
+	return not disabled and global_position.distance_to(crew.global_position) &lt;= _reach_shape.radius
+
+# True if this station wants this crew member's interact press *this frame*.
+# Returning true does two jobs: this station's perform_interact() runs, and
+# Crew's generic pickup/drop is suppressed for that press. Hold-to-use stations
+# (pump, source stations) still override this to claim the press even though
+# their real work happens in _process - see the note below.
+func claims_interact(_crew: Node2D) -&gt; bool:
+	return false
+
+# Runs once, only on the station that claimed the press. This is where the
+# station actually does something - consume an item, advance a phase, etc.
+func perform_interact(_crew: Node2D) -&gt; void:
+	pass
+</code></pre>
+      <h3>The four source stations</h3>
+      <ol class="steps">
+        <li><b>Scene → New Inherited Scene</b> from <code class="path">station.tscn</code>, rename
+          <code>SourceStation</code>, save as
+          <code class="path">res://src/stations/source_station.tscn</code>.</li>
+        <li>Attach a script.</li>
+      </ol>
+      <pre><code># src/stations/source_station.gd
+extends Station
+
+@export var carryable_scene: PackedScene   # always res://src/crew/carryable.tscn
+@export var kind: Carryable.Kind = Carryable.Kind.POWDER
+@export var hold_duration: float = 0.8
+
+var _elapsed := 0.0
+
+func _physics_process(delta: float) -&gt; void:
+	var user := _occupant()
+	if not user or not PlayerRegistry.is_interact_pressed(user.device_id):
+		_elapsed = 0.0
+		return
+	_elapsed += delta
+	if _elapsed &gt;= hold_duration:
+		_elapsed = 0.0
+		_hand_to(user)
+
+func _occupant() -&gt; Node2D:
+	for crew in get_tree().get_nodes_in_group("crew"):
+		if crew_is_near(crew):
+			return crew
+	return null
+
+func _hand_to(crew) -&gt; void:
+	# Refill an empty bucket in place, rather than requiring empty hands.
+	if kind == Carryable.Kind.BUCKET_WATER and crew.held_item \
+			and crew.held_item.kind == Carryable.Kind.BUCKET_EMPTY:
+		crew.held_item.set_kind(Carryable.Kind.BUCKET_WATER)
+		return
+	if crew.held_item:
+		return
+	var item: Carryable = carryable_scene.instantiate()
+	get_parent().add_child(item)
+	item.global_position = global_position
+	item.set_kind(kind)
+	item.pick_up(crew.hold_point)
+	crew.held_item = item
+</code></pre>
+      <p>
+        <b>Scene → New Inherited Scene</b> from <code class="path">source_station.tscn</code> four
+        times - <code class="path">magazine.tscn</code> (<code>kind = POWDER</code>),
+        <code class="path">shot_locker.tscn</code> (<code>SHOT</code>),
+        <code class="path">water_butt.tscn</code> (<code>BUCKET_WATER</code>),
+        <code class="path">lumber_crate.tscn</code> (<code>PLANK</code>) - each setting its
+        exported <code>kind</code>, pointing <code>carryable_scene</code> at
+        <code class="path">carryable.tscn</code>, and picking its own <b>Region Rect</b> on the
+        inherited <code>Sprite2D</code> so the four are visibly different objects. Do the same for
+        <code class="path">cannon.tscn</code> and <code class="path">pump.tscn</code>.
+      </p>
+      <div class="note feel">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Tune this - a station has to be findable from the corridor</p>
+        <p>
+          The test is whether a player standing in the corridor can tell which doorway leads to
+          powder. That's a matter of picking sprites that don't all read as "crate" - the Kenney
+          pirate sheet has barrels, cannon, buckets and crates that are distinguishable at 16px, and
+          it's worth spending five minutes choosing them. This is the same problem as the carryable
+          icons in Watch 4, and it has the same answer: if two things do different jobs, they must
+          not look the same.
+        </p>
+      </div>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>On <code class="path">lumber_crate.tscn</code>, untick <b>Breachable</b></p>
+        <p>
+          Every other station can be knocked out and repaired. The lumber crate cannot, because
+          planks are what you repair <em>with</em>. Leave it breachable and roughly one breach in
+          eight lands on it, at which point there is no way to draw a plank, no way to repair the
+          breach that stopped you drawing planks, and no way to plug any leak for the rest of the
+          run. The ship floods and there was never a move available. Watch 6 explains the general
+          shape of this; the switch lives here.
+        </p>
+      </div>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap - a hold station must still claim the press</p>
+        <p>
+          <code>SourceStation</code> does its work in <code>_process</code> while interact is
+          <em>held</em>, so it's tempting to leave <code>claims_interact()</code> as the
+          inherited <code>false</code>. Don't. The press that begins the hold is also an edge, and
+          <code class="path">crew.gd</code> will hand that same edge to generic pickup/drop -
+          so tapping interact at the water butt while a plank happens to be at your feet drops your
+          bucket and picks up the plank. Add these two overrides to
+          <code class="path">source_station.gd</code>, and the identical pair to
+          <code class="path">pump.gd</code>:
+        </p>
+      </div>
+      <pre><code># src/stations/source_station.gd  (add) - and the same two in pump.gd
+
+# Standing at a station means interact belongs to the station, not to whatever
+# is lying on the floor. The hold in _process does the real work; this just
+# stops Crew's generic pickup from stealing the press that starts it.
+func claims_interact(crew) -&gt; bool:
+	return crew_is_near(crew)
+
+func perform_interact(_crew) -&gt; void:
+	pass
+</code></pre>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Inherited scenes, not a factory function<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          Four things that are 95% the same is what <b>inherited scenes</b> are for. It keeps every
+          station's tuning values visible and editable in the Inspector, rather than buried in a
+          data table in a script.
+        </p>
+      </details>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: station base and the four source stations"</code></p>
+      <h3>The pump</h3>
+      <ol class="steps">
+        <li><b>Scene → New Inherited Scene</b> from <code class="path">station.tscn</code>, rename
+          <code>Pump</code>, save as <code class="path">res://src/stations/pump.tscn</code>.</li>
+        <li>Attach a script.</li>
+      </ol>
+      <pre><code># src/stations/pump.gd
+class_name Pump
+extends Station
+
+var manned: bool = false
+
+func _physics_process(_delta: float) -&gt; void:
+	var user := _occupant()
+	manned = user != null and PlayerRegistry.is_interact_pressed(user.device_id)
+
+func _occupant() -&gt; Node2D:
+	for crew in get_tree().get_nodes_in_group("crew"):
+		if crew_is_near(crew):
+			return crew
+	return null
+</code></pre>
+      <p>
+        A breached pump (Watch 6) sets <code>disabled = true</code>, which already makes
+        <code>crew_is_near</code> false for everyone, and therefore <code>_occupant()</code> null
+        and <code>manned</code> false - no extra wiring needed.
+      </p>
+      <h3>The cannon</h3>
+      <ol class="steps">
+        <li><b>Scene → New Inherited Scene</b> from <code class="path">station.tscn</code>, rename
+          <code>Cannon</code>, save as <code class="path">res://src/stations/cannon.tscn</code>.</li>
+        <li>Add a child <code>ColorRect</code> named <b><code>PhaseLight</code></b> - size
+          <code>6 × 6</code>, positioned just above the gun (e.g. <code>(-3, -12)</code>). This is
+          the gun's state, readable from across the deck.</li>
+        <li>Attach this script - it's the full load/ram/fire state machine, not a summary of one:</li>
+      </ol>
+      <pre><code># src/stations/cannon.gd
+extends Station
+
+signal fired(damage: float)
+
+enum Phase { EMPTY, POWDERED, LOADED, RUN_OUT, COOLDOWN }
+
+const RUN_OUT_HOLD_TIME := 0.8
+const COOLDOWN_TIME := 1.5
+const DAMAGE := 8.0
+
+const PHASE_COLORS := {
+	Phase.EMPTY:    Color(0.35, 0.35, 0.35),   # grey  - needs powder
+	Phase.POWDERED: Color(0.85, 0.55, 0.15),   # amber - needs shot
+	Phase.LOADED:   Color(0.90, 0.85, 0.20),   # yellow- needs ramming
+	Phase.RUN_OUT:  Color(0.30, 0.85, 0.35),   # green - ready to fire
+	Phase.COOLDOWN: Color(0.60, 0.20, 0.20),   # red   - too hot
+}
+
+var phase: Phase = Phase.EMPTY
+var _run_out_elapsed := 0.0
+var _cooldown_elapsed := 0.0
+
+@onready var _light: ColorRect = $PhaseLight
+
+func _ready() -&gt; void:
+	add_to_group("cannons")
+	_set_phase(Phase.EMPTY)
+
+# Every phase change goes through here, so the light can never disagree
+# with the state machine.
+func _set_phase(next: Phase) -&gt; void:
+	phase = next
+	_light.color = PHASE_COLORS[phase]
+
+func _physics_process(delta: float) -&gt; void:
+	match phase:
+		Phase.LOADED:
+			_tick_run_out(delta)
+		Phase.COOLDOWN:
+			_cooldown_elapsed += delta
+			if _cooldown_elapsed &gt;= COOLDOWN_TIME:
+				_cooldown_elapsed = 0.0
+				_set_phase(Phase.EMPTY)
+
+# Bare hands only - you cannot ram a gun holding a barrel of powder.
+func _tick_run_out(delta: float) -&gt; void:
+	var holding_bare_hands := false
+	for crew in get_tree().get_nodes_in_group("crew"):
+		if crew_is_near(crew) and crew.held_item == null \
+				and PlayerRegistry.is_interact_pressed(crew.device_id):
+			holding_bare_hands = true
+			break
+	if holding_bare_hands:
+		_run_out_elapsed += delta
+		if _run_out_elapsed &gt;= RUN_OUT_HOLD_TIME:
+			_run_out_elapsed = 0.0
+			_set_phase(Phase.RUN_OUT)
+	else:
+		_run_out_elapsed = 0.0
+
+func claims_interact(crew) -&gt; bool:
+	if not crew_is_near(crew):
+		return false
+	match phase:
+		Phase.EMPTY:
+			return crew.held_item != null and crew.held_item.kind == Carryable.Kind.POWDER
+		Phase.POWDERED:
+			return crew.held_item != null and crew.held_item.kind == Carryable.Kind.SHOT
+		Phase.RUN_OUT:
+			return true
+		_:
+			return false
+
+func perform_interact(crew) -&gt; void:
+	match phase:
+		Phase.EMPTY:
+			crew.held_item.queue_free()
+			crew.held_item = null
+			_set_phase(Phase.POWDERED)
+		Phase.POWDERED:
+			crew.held_item.queue_free()
+			crew.held_item = null
+			_set_phase(Phase.LOADED)
+		Phase.RUN_OUT:
+			_set_phase(Phase.COOLDOWN)
+			fired.emit(DAMAGE)
+</code></pre>
+      <p>
+        Different crew members can perform different steps - the state machine only cares what the
+        gun currently holds, not who did what - which is what makes a bucket-brigade relay down the
+        deck faster than one player alone.
+      </p>
+      <div class="note ref">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5a2 2 0 0 1 2-2h8.5L20 9.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6"/></svg>The gun doesn't know the enemy exists</p>
+        <p>
+          It would be natural to give <code>Cannon</code> an <code>@export var enemy</code> and call
+          <code>enemy.take_damage()</code> directly. Don't. It forces you to remember to drag the
+          enemy onto every gun in the Inspector (miss one and that gun silently does nothing), and
+          it makes <code class="path">cannon.gd</code> - written now - depend on a script that
+          doesn't exist until Watch 7. Emitting <code>fired(damage)</code> and letting
+          <code class="path">deck.gd</code> route it in Watch 7 costs three lines and removes both
+          problems. The gun's job is to be a gun.
+        </p>
+      </div>
+      <h3>Put them on the deck</h3>
+      <p>
+        Drag each scene into <code class="path">deck.tscn</code> as a child of <code>Deck</code>,
+        rename the instance, and set its <b>Position</b> to the value below. These are the eight
+        green dots on the Watch 1 deck plan - one station per room, each in the middle row of its
+        band so crew can reach it from the doorway side:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Instance name</th><th>Scene</th><th class="num">Position</th><th>Room</th></tr></thead>
+          <tbody>
+            <tr><td><code>CannonPortFore</code></td><td><code class="path">cannon.tscn</code></td><td class="num">(72, 40)</td><td><code>foreHoldPort</code></td></tr>
+            <tr><td><code>Magazine</code></td><td><code class="path">magazine.tscn</code></td><td class="num">(184, 40)</td><td><code>magazine</code></td></tr>
+            <tr><td><code>ShotLocker</code></td><td><code class="path">shot_locker.tscn</code></td><td class="num">(296, 40)</td><td><code>shotLocker</code></td></tr>
+            <tr><td><code>CannonPortAft</code></td><td><code class="path">cannon.tscn</code></td><td class="num">(408, 40)</td><td><code>midHold</code></td></tr>
+            <tr><td><code>CannonStarboardFore</code></td><td><code class="path">cannon.tscn</code></td><td class="num">(72, 168)</td><td><code>foreHoldStarboard</code></td></tr>
+            <tr><td><code>WaterButt</code></td><td><code class="path">water_butt.tscn</code></td><td class="num">(184, 168)</td><td><code>waterStore</code></td></tr>
+            <tr><td><code>Pump</code></td><td><code class="path">pump.tscn</code></td><td class="num">(296, 168)</td><td><code>pumpRoom</code></td></tr>
+            <tr><td><code>LumberCrate</code></td><td><code class="path">lumber_crate.tscn</code></td><td class="num">(408, 168)</td><td><code>lumberStore</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Three guns, four supply stations and a pump. Set each <code>Station</code>'s
+        <code>CollisionShape2D</code> radius to <b>14</b> to start - small enough that you have to
+        stand at a thing to use it, large enough that you don't have to be pixel-perfect.
+      </p>
+      <div class="note feel">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Tune this - why the supplies are split fore and aft</p>
+        <p>
+          Powder and shot sit in the port band; water and lumber sit starboard. That's deliberate:
+          loading a gun and fighting a fire pull crew in opposite directions, so a ship that is both
+          burning and mid-broadside forces a real decision about who abandons what. Put all four
+          supplies in one room and the game becomes a queue.
+        </p>
+      </div>
+      <div class="note checkpoint">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l12 8-12 8V4z"/></svg>Run it</p>
+        <p>Walk to the magazine and hold interact.</p>
+        <p class="predict">The gun holds a phase per thing it still needs, and the phase light is the only readout a player gets. Before you fetch anything: how many separate trips does one shot take, and what should the light do on each?</p>
+        <details class="reveal">
+          <summary>What should happen<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+          <p>Three trips and a press. Powder appears in hand after ~0.8s - check it looks different from a plank - and loading it takes the light grey → amber. Shot from the locker the same way takes amber → yellow. Then stand at the cannon holding nothing and hold interact: after 0.8s the light turns green, and one more press fires it, red for 1.5s. Nothing happens to the enemy yet; that is Watch 7.</p>
+        </details>
+      </div>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: pump and cannon, wired onto the deck"</code></p>
+    </section>
+
+    <section class="watch" id="watch-6">
+      <div class="watch-kicker"><span class="watch-num">WATCH 6</span></div>
+      <h2>Fire, flood, and a breach - read from the tilemap, not a bespoke mask</h2>
+      <p>
+        All three hazards below are read from the hull's own painted tiles, never from a separately
+        maintained rectangle of "where the floor is" - the two can never drift apart, because
+        there's only one.
+      </p>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Don't forget the group - nothing else will call these</p>
+        <p>
+          <code>claims_interact</code>/<code>perform_interact</code> only ever run if
+          <code class="path">crew.gd</code>'s <code>_handle_interact()</code> finds a node in the
+          <code>"stations"</code> group. Watch 5 only added that membership to
+          <code class="path">station.tscn</code> itself, which <code>Cannon</code>,
+          <code>SourceStation</code>, and <code>Pump</code> inherit - but <code>Fire</code>,
+          <code>Leak</code>, and <code>Breach</code> below are plain <code>Node2D</code> scripts,
+          not inherited from <code>Station</code>, so nothing makes them stations automatically.
+          Each one's script below joins the group itself in <code>_ready()</code> - without that
+          one line, every douse/plug/repair method here is fully written and never once called.
+        </p>
+      </div>
+      <h3>Fire</h3>
+      <ol class="steps">
+        <li>Add a <code>Node2D</code> child of <code>Deck</code>, sibling of <code>Hull</code>,
+          rename <code>Fire</code>. Attach a script.</li>
+        <li>In the Inspector, drag <code>Hull</code> into the <b>Hull</b> field that appears.</li>
+      </ol>
+      <pre><code># src/hazards/fire.gd
+class_name FireHazard
+extends Node2D
+
+signal outbreak(cell: Vector2i)
+
+const SPREAD_INTERVAL := 3.0
+const DOUSE_REACH := 20.0
+const MAGAZINE_ROOM := "magazine"
+
+@export var hull: TileMapLayer
+
+var _burning: Dictionary = {}    # Vector2i -&gt; ColorRect (the burning cell's visual)
+var _elapsed := 0.0
+var _reported_magazine := false
+
+# Beats any ordinary station competing for the same press.
+var interact_priority: int = 10
+
+func _ready() -&gt; void:
+	add_to_group("stations")
+
+func _process(delta: float) -&gt; void:
+	_elapsed += delta
+	if _elapsed &lt; SPREAD_INTERVAL:
+		return
+	_elapsed = 0.0
+	_spread()
+
+func ignite_random() -&gt; void:
+	var candidates := _ignitable_cells()
+	if candidates.is_empty():
+		return
+	_ignite(candidates[randi() % candidates.size()])
+
+func claims_interact(crew) -&gt; bool:
+	if crew.held_item == null or crew.held_item.kind != Carryable.Kind.BUCKET_WATER:
+		return false
+	return _nearest_burning(crew.global_position) != Vector2i.MIN
+
+func perform_interact(crew) -&gt; void:
+	var cell := _nearest_burning(crew.global_position)
+	if cell == Vector2i.MIN:
+		return
+	_extinguish(cell)
+	crew.held_item.set_kind(Carryable.Kind.BUCKET_EMPTY)
+
+# The room name painted on a cell in Watch 1, or "" for walls, the corridor,
+# and anywhere off the ship. This one function is the whole definition of
+# "somewhere a fire can be".
+func _room_of(cell: Vector2i) -&gt; String:
+	var data := hull.get_cell_tile_data(cell)
+	if data == null:
+		return ""
+	var room: String = data.get_custom_data("room")
+	return room
+
+func _world_of(cell: Vector2i) -&gt; Vector2:
+	return hull.to_global(hull.map_to_local(cell))
+
+func _ignite(cell: Vector2i) -&gt; void:
+	if _burning.has(cell):
+		return
+	var visual := ColorRect.new()
+	visual.size = Vector2(16, 16)
+	visual.color = Color(0.85, 0.25, 0.1)
+	add_child(visual)
+	visual.global_position = _world_of(cell) - Vector2(8, 8)
+	_burning[cell] = visual
+	outbreak.emit(cell)
+
+	if _room_of(cell) == MAGAZINE_ROOM and not _reported_magazine:
+		_reported_magazine = true
+		GameState.lose("The magazine caught fire.")
+
+func _extinguish(cell: Vector2i) -&gt; void:
+	if not _burning.has(cell):
+		return
+	_burning[cell].queue_free()
+	_burning.erase(cell)
+
+func _spread() -&gt; void:
+	var frontier: Array = _burning.keys()
+	for cell in frontier:
+		var room := _room_of(cell)
+		for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var neighbor: Vector2i = cell + offset
+			if _burning.has(neighbor):
+				continue
+			# Same room only. A fire never crosses a wall, never runs down the
+			# corridor, and never reaches the open sea - and it can never grow
+			# past the 18 cells of the room it started in.
+			if _room_of(neighbor) != room:
+				continue
+			_ignite(neighbor)
+
+func _ignitable_cells() -&gt; Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for cell in hull.get_used_cells():
+		if _room_of(cell) != "":
+			cells.append(cell)
+	return cells
+
+func _nearest_burning(from: Vector2) -&gt; Vector2i:
+	var best := Vector2i.MIN
+	var best_dist := DOUSE_REACH
+	for cell in _burning.keys():
+		var d := from.distance_to(_world_of(cell))
+		if d &lt;= best_dist:
+			best = cell
+			best_dist = d
+	return best
+</code></pre>
+      <div class="note ref">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5a2 2 0 0 1 2-2h8.5L20 9.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6"/></svg>One rule, two jobs</p>
+        <p>
+          It is tempting to filter by room only when <em>starting</em> a fire and let spreading use
+          the cheaper "is there a tile here" test. That's the bug: wall tiles and corridor tiles are
+          painted tiles, so they pass it. The fire creeps into the timbers and down the corridor,
+          which looks like a physics glitch and is really a mismatched pair of definitions.
+          <code>_room_of()</code> is used by both, so they cannot drift.
+        </p>
+        <p>
+          Containment is also what makes fire <em>fair</em>. Unbounded four-way spread doubles every
+          tick and eats the ship faster than six people can carry buckets; bounded to one 6×3 room,
+          the worst case is 18 cells and a crew that commits to it will always win. The corridor
+          stays the safe artery, which is what makes it worth running down.
+        </p>
+      </div>
+      <p>
+        <code>hull.get_used_cells()</code> asks the TileMapLayer directly for every painted floor
+        cell; checking its <code>room</code> custom data excludes the corridor (left blank in
+        Watch 1) automatically. Fire spreads on the 16px tile grid, once every
+        <code>SPREAD_INTERVAL</code> seconds, to every open orthogonal neighbour of every currently
+        burning cell at once - a plain square, drawn with <code>ColorRect</code>, stands in for
+        flame art; swap it for an animated sprite whenever you like, nothing else changes.
+      </p>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: fire that spreads across the hull tiles"</code></p>
+      <div class="note feel">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Tune this - doused cells relight on the next tick</p>
+        <p>
+          As written, a doused cell next to a burning one catches again on the very next spread, so
+          a fully burning room costs a whole 3-cell column back every 3 seconds. Making headway
+          needs more than one bucket a second across the crew, and with a round trip of roughly
+          five seconds to the water butt, that is the whole crew doing nothing else.
+        </p>
+        <p>
+          Scuttle's fix: doused cells stay damp for <code>DAMP_TIME</code> (6 seconds, two ticks)
+          and <code>_spread()</code> skips them. Keep a second dictionary,
+          <code>_damp</code>, mapping each cell to the time it dries; set it in
+          <code>_extinguish()</code> and add one guard beside the <code>_burning</code> check.
+          Compare the expiry against the clock, not just <code>has()</code>, or a doused cell stays
+          fireproof forever - and keep both sides in the same units:
+          <code>Time.get_ticks_msec()</code> is integer milliseconds, so divide by
+          <code>1000.0</code>, not <code>1000</code>.
+        </p>
+        <pre><code>if _damp.has(neighbor) and _damp[neighbor] &gt; Time.get_ticks_msec() / 1000.0:
+	continue</code></pre>
+      </div>
+      <h3>Leak</h3>
+      <ol class="steps">
+        <li>Add a <code>Node2D</code> child of <code>Deck</code>, rename <code>Leak</code>. Attach a
+          script.</li>
+        <li>Drag <code>Hull</code> into <b>Hull</b>, and the <code>Pump</code> station instance
+          into <b>Pump</b>.</li>
+      </ol>
+      <pre><code># src/hazards/leak.gd
+class_name LeakHazard
+extends Node2D
+
+signal sprung(at: Vector2)
+
+const LEAK_RATE := 3.0     # % per second, per open leak
+const PUMP_RATE := 8.0     # % per second, while the pump is manned
+const WADE_THRESHOLD := 50.0
+const PLUG_RANGE := 12.0
+
+@export var hull: TileMapLayer
+@export var pump: Pump
+
+var water_level: float = 0.0
+var _leaks: Dictionary = {}      # int id -&gt; { at: Vector2, visual: ColorRect }
+var _next_id := 0
+var _reported_flooded := false
+var interact_priority: int = 10
+
+func _ready() -&gt; void:
+	add_to_group("stations")
+	add_to_group("leak_hazard")
+
+func _process(delta: float) -&gt; void:
+	water_level += _leaks.size() * LEAK_RATE * delta
+	if pump.manned:
+		water_level -= PUMP_RATE * delta
+	water_level = clamp(water_level, 0.0, 100.0)
+
+	if water_level &gt;= 100.0 and not _reported_flooded:
+		_reported_flooded = true
+		GameState.lose("The ship flooded.")
+
+func crew_slowed() -&gt; bool:
+	return water_level &gt; WADE_THRESHOLD
+
+func spring_random() -&gt; void:
+	# Rooms only - the same rule fire uses. A leak inside a wall is unpluggable,
+	# and one in the corridor turns the ship's only artery into a hazard.
+	var cells := _room_cells()
+	if cells.is_empty():
+		return
+	var cell: Vector2i = cells[randi() % cells.size()]
+	var at: Vector2 = hull.to_global(hull.map_to_local(cell))
+
+	var visual := ColorRect.new()
+	visual.size = Vector2(10, 10)
+	visual.color = Color(0.3, 0.5, 0.85)
+	add_child(visual)
+	visual.global_position = at - Vector2(5, 5)
+
+	var id := _next_id
+	_next_id += 1
+	_leaks[id] = { "at": at, "visual": visual }
+	sprung.emit(at)
+
+func claims_interact(crew) -&gt; bool:
+	if crew.held_item == null or crew.held_item.kind != Carryable.Kind.PLANK:
+		return false
+	return _nearest_leak(crew.global_position) != -1
+
+func perform_interact(crew) -&gt; void:
+	var id := _nearest_leak(crew.global_position)
+	if id == -1:
+		return
+	_leaks[id].visual.queue_free()
+	_leaks.erase(id)
+	crew.held_item.queue_free()
+	crew.held_item = null
+
+func _nearest_leak(from: Vector2) -&gt; int:
+	var best_id := -1
+	var best_dist := PLUG_RANGE
+	for id in _leaks:
+		var d: float = from.distance_to(_leaks[id].at)
+		if d &lt;= best_dist:
+			best_id = id
+			best_dist = d
+	return best_id
+
+func _room_cells() -&gt; Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for cell in hull.get_used_cells():
+		var data := hull.get_cell_tile_data(cell)
+		if data == null:
+			continue
+		var room: String = data.get_custom_data("room")
+		if room != "":
+			cells.append(cell)
+	return cells
+</code></pre>
+      <p>
+        Wading should actually slow crew down. Two edits to <code class="path">crew.gd</code>: add
+        one constant near the top, alongside <code>SPEED</code>:
+      </p>
+      <pre><code>const WADE_SPEED_FACTOR := 0.55
+</code></pre>
+      <p>
+        Then, inside <code>_physics_process</code>, replace the line
+        <code>velocity = move * SPEED</code> with:
+      </p>
+      <pre><code>var speed := SPEED
+var leak = get_tree().get_first_node_in_group("leak_hazard")
+if leak and leak.crew_slowed():
+	speed *= WADE_SPEED_FACTOR
+velocity = move * speed
+</code></pre>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: leak, and water rising in a room"</code></p>
+      <h3>Breach</h3>
+      <ol class="steps">
+        <li>Add a <code>Node2D</code> child of <code>Deck</code>, rename <code>Breach</code>. Attach
+          a script. There is nothing to wire in the Inspector - it finds its own targets.</li>
+      </ol>
+      <pre><code># src/hazards/breach.gd
+class_name BreachHazard
+extends Node2D
+
+signal disabled_station(station: Station)
+
+const REPAIR_RANGE := 24.0
+
+var _breached: Station = null
+var _marker: ColorRect = null
+var interact_priority: int = 10
+
+func _ready() -&gt; void:
+	add_to_group("stations")
+
+# Everything in the "stations" group that is genuinely a Station. The `is`
+# check matters: Fire, Leak and Breach itself are all in that group too, and
+# none of them is a thing a cannonball can knock out.
+func _candidates() -&gt; Array[Station]:
+	var out: Array[Station] = []
+	for node in get_tree().get_nodes_in_group("stations"):
+		if node is Station and node.breachable and not node.disabled:
+			out.append(node)
+	return out
+
+func breach_random() -&gt; void:
+	if _breached:
+		return
+	var candidates := _candidates()
+	if candidates.is_empty():
+		return
+
+	_breached = candidates[randi() % candidates.size()]
+	_breached.disabled = true
+
+	_marker = ColorRect.new()
+	_marker.size = Vector2(16, 16)
+	_marker.color = Color(0.88, 0.32, 0.32)
+	_marker.position = _breached.global_position - Vector2(8, 8)
+	add_child(_marker)
+
+	disabled_station.emit(_breached)
+
+func claims_interact(crew) -&gt; bool:
+	if not _breached or crew.held_item == null:
+		return false
+	if crew.held_item.kind != Carryable.Kind.PLANK:
+		return false
+	return crew.global_position.distance_to(_breached.global_position) &lt;= REPAIR_RANGE
+
+func perform_interact(crew) -&gt; void:
+	_breached.disabled = false
+	_breached = null
+	crew.held_item.queue_free()
+	crew.held_item = null
+	_marker.queue_free()
+	_marker = null
+</code></pre>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap</p>
+        <p>
+          The tempting shortcut is a hardcoded rectangle describing "where the floor is." It works
+          on the day you write it and rots the first time you reshape the hull - and it rots
+          silently, as fires igniting over open sea, long after you've forgotten the rectangle
+          exists. Every hazard above reads cells straight from
+          <code>hull.get_used_cells()</code> instead: there is exactly one place the floor is
+          defined, and it's the thing you painted.
+        </p>
+      </div>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap - never let a hazard disable its own cure</p>
+        <p>
+          <code>breach_random()</code> picks uniformly from every breachable station, and
+          <code>breachable</code> exists for exactly one reason: the lumber crate must not be in
+          that pool. Planks repair breaches <em>and</em> plug leaks, and a disabled station hands
+          out nothing - so a breached lumber crate removes the only cure for two of the three
+          hazards, permanently, with no counterplay. The run doesn't end; it just becomes
+          unwinnable while still looking playable, which is worse.
+        </p>
+        <p>
+          Worth stating as a general rule, because it recurs: <b>a hazard must never be able to
+          disable the thing that fixes it.</b> Any station you add later needs checking against it.
+        </p>
+      </div>
+      <div class="note feel">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Tune this - three hazard economies</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Hazard</th><th>Dial</th><th class="num">Starting value</th><th>Feel</th></tr></thead>
+            <tbody>
+              <tr><td>Fire</td><td><code>SPREAD_INTERVAL</code></td><td class="num">3.0</td><td>Lower = frantic; higher = a fire someone can walk past and ignore</td></tr>
+              <tr><td>Fire</td><td><code>DOUSE_REACH</code></td><td class="num">20.0</td><td>Must be reachable while standing pressed against the flame, no further</td></tr>
+              <tr><td>Leak</td><td><code>LEAK_RATE</code></td><td class="num">3.0</td><td>Stacks - two unplugged leaks are not twice as urgent, they're a different game</td></tr>
+              <tr><td>Leak</td><td><code>PUMP_RATE</code></td><td class="num">8.0</td><td>Must outpace one leak alone but lose to two - the pump becomes a triage decision</td></tr>
+              <tr><td>Leak</td><td><code>WADE_THRESHOLD</code></td><td class="num">50.0</td><td>Crew slow to 55% speed above this - a felt cost, not just a HUD number</td></tr>
+              <tr><td>Breach</td><td>concurrent breaches</td><td class="num">1</td><td>Simplicity over realism, deliberately - the code above never allows a second while one stands</td></tr>
+              <tr><td>Breach</td><td>breachable stations</td><td class="num">7 of 8</td><td>The lumber crate is exempt; anything that supplies a repair material must be</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="note checkpoint">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l12 8-12 8V4z"/></svg>Run it</p>
+        <p>Call <code class="expr">$Fire.ignite_random()</code>, <code class="expr">$Leak.spring_random()</code> and <code class="expr">$Breach.breach_random()</code> from a temporary debug key for now (formalized in Watch 10).</p>
+        <p class="predict">All three hazards read the hull's own painted tiles, and <code>_room_of()</code> is the only definition of burnable anywhere in the build. Given that: where can a fire start, and where can it never reach?</p>
+        <details class="reveal">
+          <summary>What should happen<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+          <p>It can only ever land and spread inside a room - never in the corridor, never on open water, and never out of the room it started in - spreading outward every few seconds. A leak should raise the water bar, and a plank brought within reach should clear it. A breach should disable one station, shown by a red square, until it is repaired.</p>
+        </details>
+      </div>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: breach, and the hull damage it does"</code></p>
+    </section>
+
+    <section class="watch" id="watch-7">
+      <div class="watch-kicker"><span class="watch-num">WATCH 7</span></div>
+      <h2>No helm this time</h2>
+      <p>
+        A ship-heading/bearing system with a closing range is tempting to add, and worth explicitly
+        deciding not to build: nothing reads it except its own display, damage never varies by
+        heading, and the enemy sits off-screen behind an unreadable "distance" until it closes.
+        Build the simpler version instead: both ships are simply in shot for the whole fight,
+        FTL-style, and every gun always bears.
+      </p>
+      <ol class="steps">
+        <li>New scene, root <code>Node2D</code>, rename <code>EnemyShip</code>, save as
+          <code class="path">res://src/ship/enemy_ship.tscn</code>. Add a <code>Sprite2D</code>
+          child and - exactly as you did for the crew in Watch 2 - set its <b>Texture</b> to the
+          pirates sheet, tick <b>Region → Enabled</b>, and set the region rect to the cell you want.
+          A ship reads better at two or three tiles wide than one, so a region like
+          <code>48 × 16</code> is a reasonable start. A plain <code>Polygon2D</code> works too if
+          you'd rather not hunt for a frame; the art choice affects nothing mechanical here.</li>
+        <li>Add a <code>Timer</code> child. <b>Rename it to <code>Cadence</code></b> - the script
+          below finds it by that exact name. Check <b>One Shot</b>; leave <b>Wait Time</b> at its
+          default, the script sets it.</li>
+        <li>Attach a script to <code>EnemyShip</code>.</li>
+      </ol>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap - a <code>Sprite2D</code> with no region draws the <em>whole sheet</em></p>
+        <p>
+          Assigning the tilemap sheet to a <code>Sprite2D</code> and stopping there does not give
+          you one tile. It gives you all 289 of them, as a single 272 × 272 image, centred on the
+          node - a vast pale rectangle dumped across the deck, several times the size of the ship.
+          It looks like a rendering fault rather than a missing checkbox, which is what makes it
+          worth its own warning. <b>Region → Enabled</b>, then set the rect. The same applies to
+          every <code>Sprite2D</code> in this build.
+        </p>
+      </div>
+      <pre><code># src/ship/enemy_ship.gd
+class_name EnemyShip
+extends Node2D
+
+signal fired
+signal broadside_landed
+
+const INTERVAL := 4.0
+const JITTER := 2.0
+const SHOT_FLIGHT := 0.9
+
+@export var max_hull_hp: float = 100.0
+var hull_hp: float = 0.0
+var _sunk := false
+
+@onready var _cadence: Timer = $Cadence
+
+func _ready() -&gt; void:
+	# Seed it here, not at the declaration. Member initialisers run before the
+	# scene's exported values are applied, so `var hull_hp := max_hull_hp` would
+	# always be 100 no matter what you typed into the Inspector - a bug that
+	# looks exactly like "the enemy ignores its health setting".
+	hull_hp = max_hull_hp
+	_cadence.timeout.connect(_on_cadence_timeout)
+	_roll_next_cadence()
+
+func _roll_next_cadence() -&gt; void:
+	_cadence.start(INTERVAL + randf() * JITTER)
+
+func _on_cadence_timeout() -&gt; void:
+	if _sunk:
+		return
+	fired.emit()
+	_roll_next_cadence()
+	await get_tree().create_timer(SHOT_FLIGHT).timeout
+	if not _sunk:
+		broadside_landed.emit()
+
+func take_damage(amount: float) -&gt; void:
+	if _sunk:
+		return
+	hull_hp = max(0.0, hull_hp - amount)
+	if hull_hp &lt;= 0.0:
+		_sunk = true
+		GameState.win()
+</code></pre>
+      <ol class="steps">
+        <li>Drag <code class="path">enemy_ship.tscn</code> into <code class="path">deck.tscn</code>
+          as a child of <code>Deck</code>, name the instance <code>EnemyShip</code>, and set its
+          <b>Position</b> to <code>(256, -20)</code> - centred on the hull, in the strip of sea
+          above it.</li>
+      </ol>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap - there is far less sea than you think</p>
+        <p>
+          "Put it off the top edge" is easy to overshoot into "put it off the <em>screen</em>". Do
+          the arithmetic once: the camera sits at <code>(256, 104)</code> and the viewport is 360px
+          tall, so the visible world runs from <code>y = -76</code> to <code>y = 284</code>. The
+          hull's top edge is <code>y = 0</code>. That leaves a strip of open sea just
+          <b>76 pixels</b> deep for the enemy to occupy. Anything above about <code>y = -75</code>
+          is never drawn, and you get a battle against an opponent you can only perceive as a
+          falling number on the HUD.
+        </p>
+      </div>
+      <p>
+        Now wire both directions in <code class="path">deck.gd</code>'s <code>_ready()</code>: every
+        gun's <code>fired</code> signal into the enemy's hull, and the enemy's broadside into one of
+        the three hazards, chosen with no favouritism.
+      </p>
+      <pre><code># src/ship/deck.gd  (add)
+@onready var _hull: TileMapLayer = $Hull
+@onready var _enemy: EnemyShip = $EnemyShip
+
+# ...and inside the existing _ready():
+	_enemy.broadside_landed.connect(_on_broadside_landed)
+	for cannon in get_tree().get_nodes_in_group("cannons"):
+		cannon.fired.connect(_on_cannon_fired)
+
+func _on_cannon_fired(damage: float) -&gt; void:
+	_enemy.take_damage(damage)
+
+func _on_broadside_landed() -&gt; void:
+	match randi() % 3:
+		0: $Fire.ignite_random()
+		1: $Leak.spring_random()
+		2: $Breach.breach_random()
+</code></pre>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Why the group loop works here and not everywhere<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          <code class="expr">get_tree().get_nodes_in_group("cannons")</code> in <code>Deck._ready()</code> finds
+          every gun because Godot runs a node's <code>_ready()</code> <em>after</em> all of its
+          children's - so all three cannons have already joined the group by the time the deck asks.
+          The same loop written in <code>_enter_tree()</code> would find nothing. Add a fourth gun
+          later and it wires itself; there is no Inspector field to forget.
+        </p>
+      </details>
+      <p>
+        Resist adding a "smarter" targeting scheme - hazards are meant to land as indiscriminate
+        weather, not a tactic to read and counter.
+      </p>
+      <div class="note feel">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Tune this - the enemy's tempo</p>
+        <p>
+          A fixed interval reads as a metronome inside the first minute. A jitter close to half the
+          interval, as here, is enough raggedness that you never quite learn the beat without ever
+          letting the ship go quiet long enough to feel safe. Raise <code>INTERVAL</code> to make
+          the enemy slower; <code>JITTER</code> alone decides how erratic it feels.
+        </p>
+      </div>
+      <div class="note checkpoint">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l12 8-12 8V4z"/></svg>Run it</p>
+        <p>Let a battle run untouched for a minute.</p>
+        <p class="predict">The enemy fires on a cadence you deliberately made irregular, and you built no helm, no heading and no closing range. Will you be able to learn its rhythm and plan your trips around it?</p>
+        <details class="reveal">
+          <summary>What should happen<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+          <p>No, and that is the design - the crew should never get a quiet beat to bank on. You should see the enemy fire, then a hazard land roughly a second later, on an irregular but never-quiet rhythm. Firing every cannon should visibly bring its hull down and eventually sink it.</p>
+        </details>
+      </div>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: enemy fire on an irregular cadence"</code></p>
+    </section>
+
+    <section class="watch" id="watch-8">
+      <div class="watch-kicker"><span class="watch-num">WATCH 8</span></div>
+      <h2>Muster and the scoreboard</h2>
+      <h3>The message feed</h3>
+      <ol class="steps">
+        <li>New scene, root <code>CanvasLayer</code>, rename <code>Feed</code>, save as
+          <code class="path">res://src/ui/feed.tscn</code>. Add a <code>VBoxContainer</code> child
+          named <code>Lines</code>. Set its <b>Position</b> to <code>(6, 6)</code> and its
+          <b>Size</b> to <code>(240, 90)</code> - top-left, clear of the hull, which starts 174px
+          in at this viewport size.</li>
+        <li>Attach a script.</li>
+      </ol>
+      <pre><code># src/ui/feed.gd
+extends CanvasLayer
+
+const FONT_SIZE := 8
+
+@onready var _lines: VBoxContainer = $Lines
+
+func push(text: String) -&gt; void:
+	var label := Label.new()
+	label.text = text
+	# The viewport is only 360px tall. Godot's default 16px label puts three
+	# messages across a quarter of the screen, straight over the ship.
+	label.add_theme_font_size_override("font_size", FONT_SIZE)
+	_lines.add_child(label)
+	var tween := create_tween()
+	tween.tween_interval(2.0)
+	tween.tween_property(label, "modulate:a", 0.0, 0.6)
+	tween.tween_callback(label.queue_free)
+</code></pre>
+      <ol class="steps">
+        <li>Drag <code class="path">feed.tscn</code> into <code class="path">deck.tscn</code>, name
+          the instance <code>Feed</code>.</li>
+        <li>Add this to <code class="path">deck.gd</code>'s <code>_ready()</code>:</li>
+      </ol>
+      <pre><code># src/ship/deck.gd  (add to _ready())
+$Fire.outbreak.connect(func(cell): $Feed.push("Fire in %s!" % _room_name(cell)))
+$Leak.sprung.connect(func(_at): $Feed.push("Water is rising - man the pump!"))
+$Breach.disabled_station.connect(func(station): $Feed.push("There's a breach at %s!" % station.name))
+$EnemyShip.fired.connect(func(): $Feed.push("The enemy fired!"))
+
+func _room_name(cell: Vector2i) -&gt; String:
+	var data := _hull.get_cell_tile_data(cell)
+	if data:
+		var room: String = data.get_custom_data("room")
+		if room != "":
+			return room
+	return "the ship"
+</code></pre>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap - <code>:=</code> behind a <code>$</code> won't compile</p>
+        <p>
+          Note that this reads <code>_hull</code>, not <code>$Hull</code>. Add
+          <code class="expr">@onready var _hull: TileMapLayer = $Hull</code> alongside the other
+          <code>@onready</code> lines. Writing <code class="expr">var data := $Hull.get_cell_tile_data(cell)</code>
+          is a <em>parse error</em>, not a warning: <code>$</code> is statically typed as plain
+          <code>Node</code>, so the call's return type is unknown, and <code>:=</code> has nothing
+          to infer from. The fix is always the same - put the node behind a typed
+          <code>@onready</code> and the whole expression type-checks.
+        </p>
+      </div>
+      <p>
+        Keeping this wiring in <code class="path">deck.gd</code>, separate from the hazard scripts
+        themselves, means every line the player ever reads lives in one place - rewrite the wording
+        here without touching a single hazard's logic.
+      </p>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: the message feed"</code></p>
+
+      <h3>The two bars that decide the game</h3>
+      <p>
+        <code>Leak.water_level</code> and <code>EnemyShip.hull_hp</code> are the two numbers that
+        end the battle, and so far neither has ever been on screen. A player can currently lose to a
+        flood they had no way to see coming. Fix that before anything else in this watch.
+      </p>
+      <ol class="steps">
+        <li>New scene, root <code>CanvasLayer</code>, rename <code>Hud</code>, save as
+          <code class="path">res://src/ui/hud.tscn</code>.</li>
+        <li>Add two <code>ProgressBar</code> children, named <code>Water</code> and
+          <code>EnemyHull</code>. For each: <b>Min Value</b> <code>0</code>, <b>Max Value</b>
+          <code>100</code>, and untick <b>Show Percentage</b>. Give both an explicit
+          <b>Size</b> of <code>(120, 10)</code> - a <code>Control</code> parented straight to a
+          <code>CanvasLayer</code> has no container to size it, so without this you get its
+          4 × 4 minimum and a bar you cannot see. Set <code>Water</code>'s <b>Position</b> to
+          <code>(8, 250)</code> and <code>EnemyHull</code>'s to <code>(370, 8)</code>, with a small
+          <code>Label</code> beside each ("WATER", "ENEMY HULL") at font size <code>8</code>.
+          Keep <code>EnemyHull</code> to the <em>right</em> of centre, not on it - the enemy ship
+          itself occupies the middle of that strip, and a bar laid over it hides the thing it's
+          reporting on.</li>
+        <li>Attach a script.</li>
+      </ol>
+      <pre><code># src/ui/hud.gd
+extends CanvasLayer
+
+@export var leak: LeakHazard
+@export var enemy: EnemyShip
+
+@onready var _water: ProgressBar = $Water
+@onready var _enemy_hull: ProgressBar = $EnemyHull
+
+func _process(_delta: float) -&gt; void:
+	if leak:
+		_water.value = leak.water_level
+	if enemy and enemy.max_hull_hp &gt; 0.0:
+		_enemy_hull.value = enemy.hull_hp / enemy.max_hull_hp * 100.0
+</code></pre>
+      <p>
+        Drag <code class="path">hud.tscn</code> into <code class="path">deck.tscn</code> as a child
+        of <code>Deck</code>, name the instance <code>Hud</code>, then drag the <code>Leak</code>
+        and <code>EnemyShip</code> nodes onto its <b>Leak</b> and <b>Enemy</b> fields.
+      </p>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Why every piece of UI here is a <code>CanvasLayer</code><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          A bare <code>Control</code> parented to a <code>Node2D</code> lives in <em>world</em>
+          space: it scrolls with the camera, and it inherits the screen shake you're about to add in
+          Watch 9. A <code>CanvasLayer</code> draws in screen space, above everything, immune to
+          both. If a piece of UI should stay nailed to the screen, it goes in a
+          <code>CanvasLayer</code> - no exceptions, which is why the feed above is one too.
+        </p>
+      </details>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: the two bars that decide the game"</code></p>
+
+      <h3>The scoreboard</h3>
+      <pre><code># src/ui/scoreboard.gd
+extends CanvasLayer
+
+@onready var _label: Label = $Overlay/Label
+@onready var _hint: Label = $Overlay/Hint
+
+func _ready() -&gt; void:
+	hide()
+	GameState.won.connect(_on_won)
+	GameState.lost.connect(_on_lost)
+
+func _on_won() -&gt; void:
+	_label.text = "VICTORY"
+	_reveal()
+
+func _on_lost(reason: String) -&gt; void:
+	_label.text = "DEFEAT - %s" % reason
+	_reveal()
+
+func _reveal() -&gt; void:
+	_hint.text = "Press R to sail again"
+	show()
+
+func _unhandled_input(event: InputEvent) -&gt; void:
+	if not visible:
+		return
+	if event is InputEventKey and event.pressed and event.keycode == KEY_R:
+		restart()
+
+func restart() -&gt; void:
+	# GameState outlives the scene, so it has to be told the battle is over
+	# BEFORE the new one loads. See the trap below.
+	GameState.reset()
+	get_tree().reload_current_scene()
+</code></pre>
+      <p>
+        Build <code class="path">scoreboard.tscn</code> as follows: New scene, root
+        <code>CanvasLayer</code>, rename <code>Scoreboard</code>, save as
+        <code class="path">res://src/ui/scoreboard.tscn</code>. Add a child <code>Control</code>
+        named <code>Overlay</code> (Layout → <b>Full Rect</b>), and inside it a
+        <code>ColorRect</code> (Layout → <b>Full Rect</b>, a semi-transparent dark colour), a
+        <code>Label</code> named <code>Label</code> anchored centre, and a second
+        <code>Label</code> named <code>Hint</code> just below it. Attach the script above and add
+        the scene as a child of <code>Deck</code>. <code class="path">GameState</code> from Watch 0
+        already exposes <code>win()</code> and <code>lose(reason)</code>, each resolving only once -
+        both are already called from <code class="path">enemy_ship.gd</code>,
+        <code class="path">fire.gd</code>, and <code class="path">leak.gd</code>.
+      </p>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap</p>
+        <p>
+          Whatever restarts the deck must call <code>GameState.reset()</code> before
+          <code class="expr">get_tree().reload_current_scene()</code>. Because <code>GameState</code> is an
+          autoload, it outlives the battle scene - without an explicit reset,
+          <code>settled</code> is still <code>true</code> from the previous battle, and
+          <code>win()</code>/<code>lose()</code> silently do nothing on the new one.
+        </p>
+      </div>
+      <div class="note checkpoint">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l12 8-12 8V4z"/></svg>Run it</p>
+        <p>Play a full battle through to a result, then press <kbd>R</kbd>.</p>
+        <p class="predict"><code class="expr">GameState.reset()</code> runs before <code class="expr">get_tree().reload_current_scene()</code>. If those two ran the other way round, what would you see the moment the new battle opened?</p>
+        <details class="reveal">
+          <summary>What should happen<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+          <p>It would open already decided, still showing the previous run's result. Done right: the enemy hull bar falls each time a gun fires, the water bar climbs while a leak is open and falls while someone mans the pump, taking the hull to zero raises a win screen, <kbd>R</kbd> restarts clean, and flooding the ship instead raises a loss screen naming the right reason - never still VICTORY from the run before.</p>
+        </details>
+      </div>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: the scoreboard"</code></p>
+    </section>
+
+    <section class="watch" id="watch-9">
+      <div class="watch-kicker"><span class="watch-num">WATCH 9</span></div>
+      <h2>Feel: shake and stop</h2>
+      <p>This is the watch that turns "the numbers are right" into "it feels like getting shot at."</p>
+      <h3>Screen shake as a continuous offset, not a tween</h3>
+      <p>Attach this script to the <code>Camera2D</code> you added in Watch 1:</p>
+      <pre><code># src/ship/shake_camera.gd
+extends Camera2D
+
+const DECAY_PER_SECOND := 6.0
+var _strength := 0.0
+
+func _ready() -&gt; void:
+	add_to_group("shake_camera")
+
+func shake(strength: float) -&gt; void:
+	_strength = max(_strength, strength)
+
+func _process(delta: float) -&gt; void:
+	if _strength &lt;= 0.0:
+		offset = Vector2.ZERO
+		return
+	offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _strength
+	_strength = max(0.0, _strength - DECAY_PER_SECOND * delta)
+</code></pre>
+      <p>
+        Shake is alive for as long as its strength is nonzero, decaying every frame - so it belongs
+        in <code>_process</code> as a continuous offset, never a one-shot <code>Tween</code>.
+        Repeated calls to <code>shake()</code> take the larger value, so a second cannon firing
+        mid-shake adds to the jolt instead of visibly resetting it.
+      </p>
+      <h3>Hit-stop, and one door to both effects</h3>
+      <p>
+        Now fill in <code class="path">src/core/fx.gd</code>, the third autoload you registered
+        (empty) back in Watch 0:
+      </p>
+      <pre><code># src/core/fx.gd
+extends Node
+
+const DEFAULT_DURATION := 0.05
+const DEFAULT_SCALE := 0.05
+
+var _stopping := false
+
+func shake(strength: float) -&gt; void:
+	var cam := get_tree().get_first_node_in_group("shake_camera")
+	if cam:
+		cam.shake(strength)
+
+func hit_stop(duration: float = DEFAULT_DURATION, scale: float = DEFAULT_SCALE) -&gt; void:
+	# Two guns firing a frame apart must not have the first one's timeout
+	# restore normal speed while the second is still mid-stutter.
+	if _stopping:
+		return
+	_stopping = true
+	Engine.time_scale = scale
+	# The 4th argument is ignore_time_scale - this timer must not itself freeze,
+	# or it would wait 1/scale times as long as you asked for and never recover.
+	await get_tree().create_timer(duration, true, false, true).timeout
+	Engine.time_scale = 1.0
+	_stopping = false
+</code></pre>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap - <code>$Camera2D</code> only works from <code>Deck</code></p>
+        <p>
+          The obvious thing to write inside <code class="path">cannon.gd</code> is
+          <code>$Camera2D.shake(2.5)</code>. It resolves to <em>nothing</em>: <code>$</code> is
+          relative to the node the script is on, and a cannon has no camera child. You get a null
+          crash the first time anyone fires. That's why <code>Fx</code> exists - it looks the camera
+          up by group, so any script anywhere can ask for a jolt without knowing where the camera
+          lives or whether one exists at all.
+        </p>
+      </div>
+      <h3>Wire the two call sites</h3>
+      <p>
+        In <code class="path">cannon.gd</code>, the <code>RUN_OUT</code> branch of
+        <code>perform_interact</code> becomes:
+      </p>
+      <pre><code>		Phase.RUN_OUT:
+			_set_phase(Phase.COOLDOWN)
+			Fx.shake(2.5)
+			Fx.hit_stop()
+			fired.emit(DAMAGE)
+</code></pre>
+      <p>And in <code class="path">deck.gd</code>, <code>_on_broadside_landed</code> gains one line:</p>
+      <pre><code>func _on_broadside_landed() -&gt; void:
+	Fx.shake(3.5)
+	match randi() % 3:
+		0: $Fire.ignite_random()
+		1: $Leak.spring_random()
+		2: $Breach.breach_random()
+</code></pre>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap</p>
+        <p>
+          <code>Engine.time_scale</code> scales every other <code>Timer</code> in the tree unless a
+          timer's own <b>Ignore Time Scale</b> is set. Decide deliberately whether the enemy's
+          <code>Cadence</code> timer from Watch 7 should also freeze mid-stutter, and set its flag
+          to match.
+        </p>
+      </div>
+      <div class="note ref">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5a2 2 0 0 1 2-2h8.5L20 9.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6"/></svg>Deliberately silent</p>
+        <p>
+          This build ships no audio, and neither Kenney pack includes any. That's a scope decision,
+          not an oversight: sound is the one part of game feel you cannot judge from a written
+          guide, and a tutorial that tells you to go and find a cannon sample has stopped being
+          self-contained. Everything the player needs to read is on screen - the phase lights, the
+          two bars, the feed, the shake. Add sound afterwards if you want it; nothing here is shaped
+          in a way that makes it awkward to bolt on.
+        </p>
+      </div>
+      <div class="note checkpoint">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l12 8-12 8V4z"/></svg>Run it</p>
+        <p>Fire a cannon, then fire two guns a single frame apart.</p>
+        <p class="predict">Shake and hitstop both accumulate rather than restart. On that second pair of shots, do you get two visible jolts, or one deeper one?</p>
+        <details class="reveal">
+          <summary>What should happen<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+          <p>One deeper one. A single gun gives a short sharp jolt, a beat of slowdown, and the camera settling back to rest within a few frames; two a frame apart should deepen the shake rather than visibly restarting it, and time should return to normal exactly once.</p>
+        </details>
+      </div>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: screen shake and hit-stop"</code></p>
+    </section>
+
+    <section class="watch" id="watch-10">
+      <div class="watch-kicker"><span class="watch-num">WATCH 10</span></div>
+      <h2>The sandbox, and a green light before every playtest</h2>
+      <ol class="steps">
+        <li>Add a bool you can flip while iterating - a <code>const SANDBOX := true</code> at the
+          top of <code class="path">deck.gd</code> is enough to start.</li>
+        <li>When set, run <code class="path">deck.tscn</code> directly as the main scene, skipping
+          <code class="path">join_screen.tscn</code>. Instead of a join, board everyone whose device
+          is already plugged in, via <code class="expr">PlayerRegistry.join_all_connected()</code> from Watch 3 -
+          that's both keyboard schemes plus every connected gamepad, so you always get at least two
+          crew you can actually drive.</li>
+        <li>Set <code class="expr">GameState.invulnerable = SANDBOX</code> in <code>_ready()</code>. That one
+          line makes every hazard's <code>lose()</code> call a no-op without a single hazard script
+          knowing the sandbox exists - you can stand in a burning magazine and study the spread.</li>
+        <li>Add two public methods to <code class="path">enemy_ship.gd</code>
+          so the sandbox can control the enemy's timer without reaching into a private variable:</li>
+      </ol>
+      <div class="note warn">
+        <p class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Known trap - don't invent device IDs</p>
+        <p>
+          The tempting shortcut is to spawn a fixed six-crew roster with made-up device IDs
+          (<code>-100</code>, <code>-101</code>, ...) so the deck always looks full. Every one of them
+          is inert: no real device reports that ID, so no Input Map actions were ever generated
+          for it, <code>PlayerRegistry.has_device()</code> is false and
+          <code>move_vector()</code> returns <code>Vector2.ZERO</code> forever. You get six
+          statues. A
+          sandbox you can't walk around in is worse than no sandbox, because it looks like it works.
+        </p>
+      </div>
+      <pre><code># src/ship/enemy_ship.gd  (add)
+func set_cadence_paused(paused: bool) -&gt; void:
+	_cadence.paused = paused
+
+func toggle_cadence_pause() -&gt; void:
+	_cadence.paused = not _cadence.paused
+</code></pre>
+      <ol class="steps" style="margin-top:0.5rem">
+        <li value="4">Add this to <code class="path">deck.gd</code> to bind practice keys:</li>
+      </ol>
+      <pre><code># src/ship/deck.gd  (add)
+func _unhandled_key_input(event: InputEvent) -&gt; void:
+	if not SANDBOX or not (event is InputEventKey) or not event.pressed:
+		return
+	match event.keycode:
+		KEY_F: $Fire.ignite_random()
+		KEY_L: $Leak.spring_random()
+		KEY_B: $Breach.breach_random()
+		KEY_P: _enemy.toggle_cadence_pause()
+</code></pre>
+      <p>
+        The parameter is typed <code>InputEvent</code>, matching the engine's own signature, and
+        narrowed with <code>is</code> inside - narrowing it in the parameter list instead is the
+        kind of thing that works until the day Godot hands you something else.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th class="num">Key</th><th>Does</th></tr></thead>
+          <tbody>
+            <tr><td class="num">F</td><td>Start a fire in a random room</td></tr>
+            <tr><td class="num">L</td><td>Spring a leak</td></tr>
+            <tr><td class="num">B</td><td>Breach a random station</td></tr>
+            <tr><td class="num">P</td><td>Pause / unpause the enemy's guns</td></tr>
+            <tr><td class="num">R</td><td>Restart the battle (from the scoreboard, Watch 8)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        This is the difference between "we tested the fire" and "we actually watched six people
+        learn to fight one."
+      </p>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "feat: sandbox scene and the debug keys"</code></p>
+
+      <h3>Tests for the two things you can't see</h3>
+      <p>
+        Almost everything in this game is judged by eye - you cannot unit-test whether a fire feels
+        frantic. Two pieces are the exception, because they're pure logic with no visuals and both
+        fail <em>silently</em> when they break: slot allocation in
+        <code class="path">player_registry.gd</code>, and the once-only settling in
+        <code class="path">game_state.gd</code>. Those are worth real tests.
+      </p>
+      <p>
+        Install <b>GUT</b> (Godot Unit Test): <b>AssetLib</b> tab at the top of the editor, search
+        <code>Gut</code>, <b>Download</b>, then <b>Install</b>. Enable it via
+        <b>Project → Project Settings → Plugins</b>, check <b>Gut</b>. If GUT prints a version
+        warning on startup, take the version it names - the tests below run either way, but the
+        warning is noise you don't want to learn to ignore.
+      </p>
+      <pre><code># tests/test_player_registry.gd
+extends GutTest
+
+func before_each() -&gt; void:
+	PlayerRegistry.reset()
+
+func test_first_player_gets_slot_one() -&gt; void:
+	var player := PlayerRegistry.join(PlayerRegistry.KEYBOARD_WASD)
+	assert_eq(player.number, 1)
+
+func test_joining_twice_does_not_take_a_second_slot() -&gt; void:
+	PlayerRegistry.join(PlayerRegistry.KEYBOARD_WASD)
+	PlayerRegistry.join(PlayerRegistry.KEYBOARD_WASD)
+	assert_eq(PlayerRegistry.players().size(), 1)
+
+func test_each_device_gets_its_own_colour() -&gt; void:
+	var a := PlayerRegistry.join(PlayerRegistry.KEYBOARD_WASD)
+	var b := PlayerRegistry.join(PlayerRegistry.KEYBOARD_ARROWS)
+	assert_ne(a.color, b.color)
+
+func test_seventh_player_is_refused() -&gt; void:
+	for i in range(PlayerRegistry.MAX_PLAYERS):
+		PlayerRegistry.join(1000 + i)
+	assert_eq(PlayerRegistry.join(9999), {})
+	assert_eq(PlayerRegistry.players().size(), PlayerRegistry.MAX_PLAYERS)
+</code></pre>
+      <pre><code># tests/test_game_state.gd
+extends GutTest
+
+func before_each() -&gt; void:
+	GameState.invulnerable = false
+	GameState.reset()
+
+func test_a_battle_settles_only_once() -&gt; void:
+	watch_signals(GameState)
+	GameState.lose("the ship flooded")
+	GameState.lose("the magazine caught fire")
+	assert_signal_emit_count(GameState, "lost", 1)
+
+func test_you_cannot_win_a_battle_already_lost() -&gt; void:
+	watch_signals(GameState)
+	GameState.lose("the ship flooded")
+	GameState.win()
+	assert_signal_emit_count(GameState, "won", 0)
+
+func test_sandbox_blocks_losing_but_not_winning() -&gt; void:
+	GameState.invulnerable = true
+	watch_signals(GameState)
+	GameState.lose("the ship flooded")
+	assert_signal_emit_count(GameState, "lost", 0)
+	GameState.win()
+	assert_signal_emit_count(GameState, "won", 1)
+
+func test_reset_reopens_the_battle() -&gt; void:
+	GameState.lose("the ship flooded")
+	GameState.reset()
+	watch_signals(GameState)
+	GameState.win()
+	assert_signal_emit_count(GameState, "won", 1)
+</code></pre>
+      <p>
+        Run them from the <b>GUT</b> panel at the bottom of the editor (point its
+        <b>Directory</b> at <code class="path">res://tests</code>), or from a terminal without
+        opening the editor at all:
+      </p>
+      <pre><code>godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
+</code></pre>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Why these four and not forty<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          <code class="expr">test_a_battle_settles_only_once</code> is the one that earns the whole file. A ship
+          that is both flooding and on fire will call <code>lose()</code> twice within a frame, and
+          without the <code>settled</code> guard the player watches the defeat screen change its
+          own mind about why they died. It's a two-line bug that only shows up under exactly the
+          circumstances you're least likely to reproduce on purpose.
+        </p>
+      </details>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "test: slot allocation and fire spread"</code></p>
+
+      <h3>A layout sanity check</h3>
+      <p>
+        Write a <code>@tool</code> script that walks every station's position and asserts it sits
+        on a floor cell at edit time - failing loudly in the editor rather than silently at
+        play-test. Save as <code class="path">res://tests/test_layout.gd</code>:
+      </p>
+      <pre><code># tests/test_layout.gd
+@tool
+extends Node2D
+
+@export var hull: TileMapLayer
+@export var run_check: bool = false:
+	set(v):
+		if v and is_inside_tree():
+			_check()
+		run_check = false
+
+func _check() -&gt; void:
+	if not hull:
+		push_error("test_layout: hull not set")
+		return
+	var misplaced := []
+	for station in get_tree().get_nodes_in_group("stations"):
+		# Fire, Leak and Breach share this group but aren't Stations and have no
+		# meaningful position - checking them would report false failures forever.
+		if not (station is Station):
+			continue
+		var cell: Vector2i = hull.local_to_map(hull.to_local(station.global_position))
+		if hull.get_cell_tile_data(cell) == null:
+			misplaced.append(station.name)
+	if misplaced.is_empty():
+		push_warning("Layout OK - all stations on floor tiles.")
+	else:
+		push_error("Layout FAIL - stations off floor: %s" % str(misplaced))
+</code></pre>
+      <p>
+        Add this node to <code class="path">deck.tscn</code> as a child of <code>Deck</code>,
+        name it <code>LayoutCheck</code>, drag <code>Hull</code> into its
+        <b>Hull</b> field, then flip the <b>Run Check</b> toggle in the Inspector any time you
+        move a station - the result prints to the <b>Output</b> panel without pressing F5.
+      </p>
+      <details class="note">
+        <summary class="note-label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>What <code>@tool</code> buys you<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></summary>
+        <p>
+          A script with <code>@tool</code> at the top runs <em>inside the editor</em>, not just at
+          play time - you can print warnings straight into the editor while still painting the
+          hull, rather than only finding out something's wrong the next time you press F5.
+        </p>
+      </details>
+      <p class="commit"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 8.5v7M18 9.5c0 3.5-4.5 2.5-6 6"/></svg><code>git commit -m "test: a layout sanity check"</code></p>
+    </section>
+
+    <section class="watch" id="appendix" style="margin-top: 3.2rem;">
+      <div class="watch-kicker"><span class="watch-num">APPENDIX</span></div>
+      <h2>The finished <code class="path">deck.gd</code>, assembled</h2>
+      <p>
+        <code class="path">deck.gd</code> picked up an addition in five separate watches - spawning
+        the roster (3), routing gunfire and broadsides (7), wiring the feed (8), the feel effects
+        and the feel effects (9), and the sandbox keys (10). Here is the whole file as it should read once all
+        five are in place, so there's no ambiguity about where any fragment above landed:
+      </p>
+      <pre><code># src/ship/deck.gd
+extends Node2D
+
+const SANDBOX := true
+const CREW_SCENE := preload("res://src/crew/crew.tscn")
+
+# Corridor rows 5 and 7, clear of all three masts (columns 6, 15, 24).
+const SPAWN_POSITIONS: Array[Vector2] = [
+	Vector2(168, 88), Vector2(168, 120), Vector2(200, 88),
+	Vector2(200, 120), Vector2(296, 88), Vector2(296, 120),
+]
+
+@onready var _hull: TileMapLayer = $Hull
+@onready var _enemy: EnemyShip = $EnemyShip
+
+func _ready() -&gt; void:
+	GameState.invulnerable = SANDBOX
+	_spawn_roster()
+
+	_enemy.broadside_landed.connect(_on_broadside_landed)
+	_enemy.fired.connect(func(): $Feed.push("The enemy fired!"))
+	for cannon in get_tree().get_nodes_in_group("cannons"):
+		cannon.fired.connect(_on_cannon_fired)
+
+	$Fire.outbreak.connect(func(cell): $Feed.push("Fire in %s!" % _room_name(cell)))
+	$Leak.sprung.connect(func(_at): $Feed.push("Water is rising - man the pump!"))
+	$Breach.disabled_station.connect(
+		func(station): $Feed.push("There's a breach at %s!" % station.name)
+	)
+
+	if SANDBOX:
+		_enemy.set_cadence_paused(true)
+
+func _spawn_roster() -&gt; void:
+	var roster := PlayerRegistry.players()
+	if roster.is_empty() and SANDBOX:
+		roster = PlayerRegistry.join_all_connected()
+	for i in range(roster.size()):
+		var player = roster[i]
+		var crew := CREW_SCENE.instantiate()
+		crew.device_id = player.device_id
+		crew.accent = player.color
+		add_child(crew)
+		crew.position = SPAWN_POSITIONS[i % SPAWN_POSITIONS.size()]
+
+func _on_cannon_fired(damage: float) -&gt; void:
+	_enemy.take_damage(damage)
+
+func _on_broadside_landed() -&gt; void:
+	Fx.shake(3.5)
+	match randi() % 3:
+		0: $Fire.ignite_random()
+		1: $Leak.spring_random()
+		2: $Breach.breach_random()
+
+func _room_name(cell: Vector2i) -&gt; String:
+	var data := _hull.get_cell_tile_data(cell)
+	if data:
+		var room: String = data.get_custom_data("room")
+		if room != "":
+			return room
+	return "the ship"
+
+func _unhandled_key_input(event: InputEvent) -&gt; void:
+	if not SANDBOX or not (event is InputEventKey) or not event.pressed:
+		return
+	match event.keycode:
+		KEY_F: $Fire.ignite_random()
+		KEY_L: $Leak.spring_random()
+		KEY_B: $Breach.breach_random()
+		KEY_P: _enemy.toggle_cadence_pause()
+</code></pre>
+      <h2 style="margin-top:2.4rem">The finished <code class="path">crew.gd</code>, assembled</h2>
+      <p>
+        <code class="path">crew.gd</code> grew across four watches too - bare movement (2), reading
+        a device and wearing a colour (3), carrying things (4), and wading through floodwater (6).
+        Here it is whole:
+      </p>
+      <pre><code># src/crew/crew.gd
+extends CharacterBody2D
+
+const SPEED := 90.0
+const PICKUP_RANGE := 14.0
+const WADE_SPEED_FACTOR := 0.55
+
+@export var device_id: int = PlayerRegistry.KEYBOARD_WASD
+@export var accent: Color = Color.WHITE
+
+var held_item: Carryable = null
+
+@onready var _sprite: Sprite2D = $Sprite2D
+@onready var hold_point: Node2D = $HoldPoint
+
+func _ready() -&gt; void:
+	add_to_group("crew")
+	_sprite.modulate = accent
+
+func _physics_process(_delta: float) -&gt; void:
+	var move := PlayerRegistry.move_vector(device_id)
+
+	var speed := SPEED
+	var leak = get_tree().get_first_node_in_group("leak_hazard")
+	if leak and leak.crew_slowed():
+		speed *= WADE_SPEED_FACTOR
+
+	velocity = move * speed
+	move_and_slide()
+
+	_handle_interact()
+
+func _handle_interact() -&gt; void:
+	if not PlayerRegistry.is_interact_just_pressed(device_id):
+		return
+	# Ask everything, then act on the strongest claim - not on the first one
+	# the group happens to hand back. See the trap below.
+	var winner: Node = null
+	var best := -1
+	for station in get_tree().get_nodes_in_group("stations"):
+		if not station.claims_interact(self):
+			continue
+		if station.interact_priority &gt; best:
+			best = station.interact_priority
+			winner = station
+	if winner:
+		winner.perform_interact(self)
+		return
+	_pick_up_or_drop()
+
+func _pick_up_or_drop() -&gt; void:
+	if held_item:
+		held_item.drop(get_parent(), global_position)
+		held_item = null
+		return
+	var nearest := _nearest_loose_item()
+	if nearest:
+		nearest.pick_up(hold_point)
+		held_item = nearest
+
+func _nearest_loose_item() -&gt; Carryable:
+	var best: Carryable = null
+	var best_dist := PICKUP_RANGE
+	for item in get_tree().get_nodes_in_group("carryables"):
+		if item.held:
+			continue
+		var d := global_position.distance_to(item.global_position)
+		if d &lt;= best_dist:
+			best = item
+			best_dist = d
+	return best
+</code></pre>
+      <p>
+        <code class="path">crew.tscn</code> itself holds four nodes: the <code>Crew</code>
+        <code>CharacterBody2D</code> root (<b>Motion Mode</b> set to <b>Floating</b>), a
+        <code>Sprite2D</code>, a <code>CollisionShape2D</code> with a radius-6
+        <code>CircleShape2D</code>, and a <code>Marker2D</code> named <code>HoldPoint</code>.
+      </p>
+
+      <h3>The finished scene tree</h3>
+      <p>
+        Every node below should exist under <code>Deck</code> before you call the build done. If a
+        run misbehaves, check this list first - most remaining problems at this stage are a missing
+        node or an unset Inspector field, not a bug in a script.
+      </p>
+      <pre><code>Deck                     (Node2D, deck.gd, main scene when SANDBOX)
+├── Hull                  TileMapLayer - the painted ship
+├── MastFore              StaticBody2D  (104, 104)
+├── MastMain              StaticBody2D  (248, 104)
+├── MastMizzen            StaticBody2D  (392, 104)
+├── Camera2D              shake_camera.gd, Enabled (default), (256, 104)
+├── CannonPortFore        cannon.tscn        ( 72,  40)   each station: Sprite2D + reach 14
+├── Magazine              magazine.tscn      (184,  40)
+├── ShotLocker            shot_locker.tscn   (296,  40)
+├── CannonPortAft         cannon.tscn        (408,  40)
+├── CannonStarboardFore   cannon.tscn        ( 72, 168)
+├── WaterButt             water_butt.tscn    (184, 168)
+├── Pump                  pump.tscn          (296, 168)
+├── LumberCrate           lumber_crate.tscn  (408, 168)  Breachable OFF
+├── Fire                  fire.gd    - Hull set
+├── Leak                  leak.gd    - Hull and Pump set
+├── Breach                breach.gd  - nothing to wire, finds its own targets
+├── EnemyShip             enemy_ship.tscn    (256, -64), child Timer named Cadence
+├── Hud                   hud.tscn   - Leak and Enemy set
+├── Feed                  feed.tscn
+├── Scoreboard            scoreboard.tscn
+└── LayoutCheck           test_layout.gd - Hull set  (editor-only, see below)
+</code></pre>
+      <p>
+        <code>Crew</code> instances are deliberately absent: they're spawned at runtime by
+        <code>_spawn_roster()</code> and never saved into the scene.
+      </p>
+      <p>
+        With <code>SANDBOX := true</code>, setting <code class="path">deck.tscn</code> itself as
+        the main scene skips the join screen entirely, boards everyone whose device is plugged in,
+        holds the enemy's guns until you press <kbd>P</kbd>, and makes the ship unsinkable - exactly
+        like Watch 10 describes. Set it to <code>false</code> and make
+        <code class="path">join_screen.tscn</code> the main scene again for the real game.
+      </p>
+      <h3>Shipping it</h3>
+      <p>
+        <b>Project → Export</b>, <b>Add...</b>, pick your platform. The first time, Godot will offer
+        to download the matching export templates - let it. Tick <b>Embed PCK</b> for a single-file
+        build, then <b>Export Project</b>. The Kenney packs are CC0, so nothing here needs an
+        attribution file to be legally distributable, though the colophon at the foot of this page
+        is the decent thing to copy across anyway.
+      </p>
+    </section>
+
+    <section class="watch" id="checklist" style="margin-top: 3.2rem;">
+      <div class="watch-kicker"><span class="watch-num">BEFORE YOU SAIL</span></div>
+      <h2>A last read, top to bottom</h2>
+      <p class="lede" style="margin-bottom:1.2rem">
+        Each of these is a thing that has actually gone wrong in a build of this game. Walk them in
+        order with the sandbox on.
+      </p>
+      <h3>It runs at all</h3>
+      <ul class="checklist">
+        <li>All three autoloads are registered: <code>GameState</code>, <code>PlayerRegistry</code>, <code>Fx</code>.</li>
+        <li><code class="path">pump.gd</code> declares <code>class_name Pump</code> - without it <code class="path">leak.gd</code>'s <code>@export var pump: Pump</code> won't parse, and nothing else in the project will either.</li>
+        <li><code class="path">enemy_ship.gd</code> declares <code>class_name EnemyShip</code>, and its <code>Timer</code> child is named exactly <code>Cadence</code>.</li>
+        <li>The Output panel is clean on startup - no "node not found", no null instance.</li>
+      </ul>
+      <h3>You can see what's happening</h3>
+      <ul class="checklist">
+        <li>Six crew are six visibly different colours, and you can find yourself without pressing a key.</li>
+        <li>Powder, shot, plank and bucket are four distinguishable icons - and a bucket you've just emptied on a fire <em>looks</em> empty.</li>
+        <li>Every cannon's phase light reads grey → amber → yellow → green → red, from across the deck.</li>
+        <li>All eight stations are visible on the deck and distinguishable from each other. An <code>Area2D</code> with no <code>Sprite2D</code> draws nothing at all - walk the corridor and confirm you can find the magazine without knowing where it is.</li>
+        <li>The water bar and the enemy hull bar are both on screen, and neither shakes with the camera.</li>
+        <li>You can tell, without reading a word, whether a gun needs powder, shot, ramming, or time.</li>
+      </ul>
+      <h3>The hazards behave</h3>
+      <ul class="checklist">
+        <li>A fire never appears in the corridor, in a wall, or over open water, and never spreads out of the room it started in - <code>_room_of()</code> is the only definition of burnable anywhere in the code.</li>
+        <li>A leak never springs somewhere no plank can reach it.</li>
+        <li>Fire, Leak and Breach each join the <code>"stations"</code> group in their own <code>_ready()</code> - without it, dousing, plugging and repairing are fully written and never once called.</li>
+        <li>Two unplugged leaks outrun the pump; one does not.</li>
+        <li>The lumber crate never gets breached - breach the deck twenty times in the sandbox with <kbd>B</kbd> and confirm it is never the one that goes down. If it can be, the run can reach a state with no legal move.</li>
+      </ul>
+      <h3>The interactions don't fight each other</h3>
+      <ul class="checklist">
+        <li>Two crew members can load the same cannon in relay without either dropping what they're carrying.</li>
+        <li>Pressing interact at a station never gets swallowed by generic pickup/drop, and vice versa - each station both claims <em>and</em> performs.</li>
+        <li>A fire burning on a station's own cell can still be doused. Light one deliberately underneath the water butt and put it out; if the station wins the press instead, <code>interact_priority</code> isn't being consulted.</li>
+        <li>Every mast's collider is exactly one tile wide - walk past all three, both directions, and through every doorway.</li>
+        <li>No station sits off a floor tile: flip <b>Run Check</b> on <code>LayoutCheck</code> and read the Output panel.</li>
+      </ul>
+      <h3>A battle can end, and then start again</h3>
+      <ul class="checklist">
+        <li>Sinking the enemy shows VICTORY; flooding or a magazine fire shows DEFEAT with the right reason.</li>
+        <li><kbd>R</kbd> restarts, and the new battle does not open already decided - <code>GameState.reset()</code> runs before <code>reload_current_scene()</code>.</li>
+        <li><code class="cmd">godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit</code> passes.</li>
+        <li>With <code>SANDBOX = false</code> the join screen is the main scene, and the roster it builds is the roster that boards.</li>
+      </ul>
+      <h3>You didn't build the thing you decided not to build</h3>
+      <ul class="checklist">
+        <li>There is no helm, no heading, no closing range anywhere in the build.</li>
+        <li>The enemy's firing never settles into a beat you can predict.</li>
+        <li>No cannon has an <code>enemy</code> field to forget to wire.</li>
+        <li>Every script above is complete as printed - you never had to open a file this guide didn't show you.</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="colophon">
+    <span>Powder Monkeys - a self-contained build log</span>
+    <span>Art: Kenney Monochrome Pirates &amp; RPG packs (kenney.nl, CC0)</span>
+  </footer>
+
+</div>
