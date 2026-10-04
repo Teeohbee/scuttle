@@ -5,20 +5,25 @@ extends Station
 @export var hold_duration: float = 0.8
 
 var _elapsed := 0.0
+var _user: Node2D = null
 
 func _physics_process(delta: float) -> void:
 	var user := _occupant()
-	if not user or not PlayerRegistry.is_interact_pressed(user.device_id):
+	if user != _user:
+		_user = user
 		_elapsed = 0.0
+	if not user:
 		return
 	_elapsed += delta
 	if _elapsed >= hold_duration:
 		_elapsed = 0.0
 		_hand_to(user)
 
+# The first crew member in reach who is holding interact. Crew who are merely
+# standing nearby must not block the one actually using the station.
 func _occupant() -> Node2D:
 	for crew in get_tree().get_nodes_in_group("crew"):
-		if crew_is_near(crew):
+		if crew_is_near(crew) and PlayerRegistry.is_interact_pressed(crew.device_id):
 			return crew
 	return null
 
