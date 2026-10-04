@@ -2594,7 +2594,7 @@ func _nearest_burning(from: Vector2) -&gt; Vector2i:
           five seconds to the water butt, that is the whole crew doing nothing else.
         </p>
         <p>
-          Scuttle's fix: doused cells stay damp for <code>DAMP_TIME</code> (6 seconds, two ticks)
+          Scuttle's fix: doused cells stay damp for <code>DAMP_TIME</code> (20 seconds)
           and <code>_spread()</code> skips them. Keep a second dictionary,
           <code>_damp</code>, mapping each cell to the time it dries; set it in
           <code>_extinguish()</code> and add one guard beside the <code>_burning</code> check.
@@ -2605,6 +2605,16 @@ func _nearest_burning(from: Vector2) -&gt; Vector2i:
         </p>
         <pre><code>if _damp.has(neighbor) and _damp[neighbor] &gt; Time.get_ticks_msec() / 1000.0:
 	continue</code></pre>
+        <p>
+          Why 20 seconds: damp only wins if the whole room can be doused before the first cleared
+          cells dry and relight from their burning neighbours. At 6 seconds that needed nearly a
+          bucket a second; the water butt serves one crew member at a time and manages about 0.3.
+          Scuttle also makes every bucket splash the four cells around the one it lands on
+          (<code>SPLASH</code> in <code>fire.gd</code>), so a full 18-cell room takes about nine
+          buckets. In bot playtests a fully burning room near the water butt went out in 15-30
+          seconds with two or more crew; one crew member alone holds it to a third of the room;
+          the lumber store, furthest from the butt, needed all six.
+        </p>
       </div>
       <h3>Leak</h3>
       <ol class="steps">
