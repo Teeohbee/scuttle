@@ -7,6 +7,8 @@ const SPREAD_INTERVAL := 3.0
 const DOUSE_REACH := 20.0
 const MAGAZINE_ROOM := 'magazine'
 const DAMP_TIME := 6.0
+# A bucket also douses the four cells around the one it lands on.
+const SPLASH := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 
 @export var hull: TileMapLayer
 
@@ -44,6 +46,8 @@ func perform_interact(crew) -> void:
 	if cell == Vector2i.MIN:
 		return
 	_extinguish(cell)
+	for offset in SPLASH:
+		_extinguish(cell + offset)
 	crew.held_item.set_kind(Carryable.Kind.BUCKET_EMPTY)
 
 func _spread() -> void:
