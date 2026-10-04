@@ -14,7 +14,9 @@ const SPLASH := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1
 
 var _burning: Dictionary = {}
 var _damp: Dictionary = {}
-var _elapsed := 0.0
+# Each cell's own clock: when it may next spread. A cell lit just now waits a
+# full SPREAD_INTERVAL, however far through anyone else's interval it is.
+var _next_spread: Dictionary = {}
 var _reported_magazine := false
 
 var interact_priority: int = 10
@@ -22,13 +24,8 @@ var interact_priority: int = 10
 func _ready() -> void:
 	add_to_group('stations')
 
-func _process(delta: float) -> void:
-	_elapsed += delta
-	if _elapsed < SPREAD_INTERVAL:
-		return
-	_elapsed = 0.0
+func _process(_delta: float) -> void:
 	_spread()
-	pass
 
 func ignite_random() -> void:
 	var candidates := _ignitable_cells()
@@ -53,8 +50,12 @@ func perform_interact(crew) -> void:
 	crew.held_item.set_kind(Carryable.Kind.BUCKET_EMPTY)
 
 func _spread() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
 	var frontier: Array = _burning.keys()
 	for cell in frontier:
+		if now < _next_spread[cell]:
+			continue
+		_next_spread[cell] = now + SPREAD_INTERVAL
 		var room := _room_of(cell)
 		for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 			var neighbor: Vector2i = cell + offset
@@ -72,6 +73,7 @@ func _extinguish(cell: Vector2i) -> void:
 	_damp[cell] = (Time.get_ticks_msec() / 1000.0) + DAMP_TIME
 	_burning[cell].queue_free()
 	_burning.erase(cell)
+	_next_spread.erase(cell)
 
 func _nearest_burning(from: Vector2) -> Vector2i:
 	var best := Vector2i.MIN
@@ -92,6 +94,7 @@ func _ignite(cell: Vector2i) -> void:
 	add_child(visual)
 	visual.global_position = _world_of(cell) - Vector2(8,8)
 	_burning[cell] = visual
+	_next_spread[cell] = (Time.get_ticks_msec() / 1000.0) + SPREAD_INTERVAL
 
 	if _room_of(cell) == MAGAZINE_ROOM and not _reported_magazine:
 		_reported_magazine = true
