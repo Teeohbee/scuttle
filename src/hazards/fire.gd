@@ -6,7 +6,7 @@ signal outbreak(cell: Vector2i)
 const SPREAD_INTERVAL := 3.0
 const DOUSE_REACH := 20.0
 const MAGAZINE_ROOM := 'magazine'
-const DAMP_TIME := 6.0
+const DAMP_TIME := 20.0
 # A bucket also douses the four cells around the one it lands on.
 const SPLASH := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 
