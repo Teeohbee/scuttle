@@ -6,10 +6,12 @@ signal outbreak(cell: Vector2i)
 const SPREAD_INTERVAL := 3.0
 const DOUSE_REACH := 20.0
 const MAGAZINE_ROOM := 'magazine'
+const DAMP_TIME := 6.0
 
 @export var hull: TileMapLayer
 
 var _burning: Dictionary = {}
+var _damp: Dictionary = {}
 var _elapsed := 0.0
 var _reported_magazine := false
 
@@ -52,6 +54,8 @@ func _spread() -> void:
 			var neighbor: Vector2i = cell + offset
 			if _burning.has(neighbor):
 				continue
+			if _damp.has(neighbor) and _damp[neighbor] > (Time.get_ticks_msec() / 1000.0):
+				continue
 			if _room_of(neighbor) != room:
 				continue
 			_ignite(neighbor)
@@ -59,6 +63,7 @@ func _spread() -> void:
 func _extinguish(cell: Vector2i) -> void:
 	if not _burning.has(cell):
 		return
+	_damp[cell] = (Time.get_ticks_msec() / 1000.0) + DAMP_TIME
 	_burning[cell].queue_free()
 	_burning.erase(cell)
 
