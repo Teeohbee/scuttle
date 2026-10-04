@@ -23,14 +23,14 @@ func _process(delta: float) -> void:
 	if _elapsed < SPREAD_INTERVAL:
 		return
 	_elapsed = 0.0
-	#_spread()
+	_spread()
 	pass
 
 func ignite_random() -> void:
 	var candidates := _ignitable_cells()
 	if candidates.is_empty():
 		return
-	#_ignite(candidates[randi() % candidates.size()])
+	_ignite(candidates[randi() % candidates.size()])
 
 func claims_interact(crew) -> bool:
 	if crew.held_item == null or crew.held_item.kind != Carryable.Kind.BUCKET_WATER:
@@ -59,7 +59,7 @@ func _spread() -> void:
 func _extinguish(cell: Vector2i) -> void:
 	if not _burning.has(cell):
 		return
-	_burning[cell].queue_free
+	_burning[cell].queue_free()
 	_burning.erase(cell)
 
 func _nearest_burning(from: Vector2) -> Vector2i:

@@ -1150,5 +1150,6 @@ position = Vector2(296, 168)
 [node name="LumberCrate" parent="." unique_id=1765432108 instance=ExtResource("8_lumbercrate")]
 position = Vector2(408, 168)
 
-[node name="Fire" type="Node2D" parent="." unique_id=634839295]
+[node name="Fire" type="Node2D" parent="." unique_id=634839295 node_paths=PackedStringArray("hull")]
 script = ExtResource("9_s6vqv")
+hull = NodePath("../Hull")
