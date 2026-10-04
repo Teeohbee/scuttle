@@ -57,15 +57,20 @@ func _spread() -> void:
 			continue
 		_next_spread[cell] = now + SPREAD_INTERVAL
 		var room := _room_of(cell)
+		var catchable: Array[Vector2i] = []
 		for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 			var neighbor: Vector2i = cell + offset
 			if _burning.has(neighbor):
 				continue
-			if _damp.has(neighbor) and _damp[neighbor] > (Time.get_ticks_msec() / 1000.0):
+			if _damp.has(neighbor) and _damp[neighbor] > now:
 				continue
 			if _room_of(neighbor) != room:
 				continue
-			_ignite(neighbor)
+			catchable.append(neighbor)
+		# One neighbour per tick, not all four: the fire creeps instead of
+		# growing as a diamond that fills a room in a few ticks.
+		if not catchable.is_empty():
+			_ignite(catchable.pick_random())
 
 func _extinguish(cell: Vector2i) -> void:
 	if not _burning.has(cell):
