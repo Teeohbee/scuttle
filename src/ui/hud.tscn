@@ -1,0 +1,22 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/hud.gd" id="1_hud"]
+
+[node name="Hud" type="CanvasLayer"]
+script = ExtResource("1_hud")
+
+[node name="EnemyHull" type="ProgressBar" parent="."]
+offset_left = 370.0
+offset_top = 8.0
+offset_right = 490.0
+offset_bottom = 18.0
+value = 100.0
+show_percentage = false
+
+[node name="EnemyHullLabel" type="Label" parent="."]
+offset_left = 370.0
+offset_top = 18.0
+offset_right = 490.0
+offset_bottom = 30.0
+theme_override_font_sizes/font_size = 8
+text = "ENEMY HULL"
