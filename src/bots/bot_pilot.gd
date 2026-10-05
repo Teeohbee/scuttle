@@ -117,7 +117,7 @@ func _fight_fire(delta: float) -> void:
 			return
 		if go_to(water_butt.global_position, delta) or at_butt:
 			stop()
-			hold_interact(true)
+			hold_interact(not _human_using(water_butt))
 		return
 	if is_holding_interact():
 		hold_interact(false)
@@ -158,13 +158,21 @@ func _crew_cannon(cannon: Node2D, delta: float) -> void:
 			_tap()
 
 # Stand at a source station holding interact until it hands something over.
+# If a human's already filling up there, wait for them rather than barge in.
 func _fetch(source: Node2D, delta: float) -> void:
 	if source.crew_is_near(_crew):
 		stop()
-		hold_interact(true)
+		hold_interact(not _human_using(source))
 		return
 	hold_interact(false)
 	go_to(source.global_position, delta)
+
+func _human_using(station: Node2D) -> bool:
+	for other in get_tree().get_nodes_in_group("crew"):
+		if other != _crew and not PlayerRegistry.is_bot(other.device_id) \
+				and station.crew_is_near(other) and PlayerRegistry.is_interact_pressed(other.device_id):
+			return true
+	return false
 
 # Put down whatever's in hand, clear of the stations.
 func _drop(delta: float) -> void:

@@ -119,6 +119,9 @@ func fill_with_bots() -> Array:
 		add_bot()
 	return players()
 
+func is_bot(device_id: int) -> bool:
+	return _players.has(device_id) and _players[device_id].is_bot
+
 func humans() -> Array:
 	return players().filter(func(p): return not p.is_bot)
 

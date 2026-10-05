@@ -8,12 +8,17 @@ extends Node
 
 const REVIEW_INTERVAL := 0.25
 const CELLS_PER_FIREFIGHTER := 2.0
+# A human who stays this close to a cannon for this long is crewing it, and the
+# bots give it up. Walking past doesn't count.
+const HUMAN_GUN_RANGE := 32.0
+const HUMAN_GUN_TIME := 1.5
 
 var fire: FireHazard
 
 var _pilots: Array = []
 var _jobs := {} # pilot -> { kind: "fire" | "cannon", cannon }
 var _review_in := 0.0
+var _human_at_gun := {} # cannon -> seconds a human has been beside it
 
 func enlist(pilot: Node) -> void:
 	_pilots.append(pilot)
@@ -22,6 +27,7 @@ func job_for(pilot: Node) -> Dictionary:
 	return _jobs.get(pilot, {})
 
 func _physics_process(delta: float) -> void:
+	_watch_humans(delta)
 	_review_in -= delta
 	if _review_in > 0.0:
 		return
@@ -79,8 +85,17 @@ func _fire_fitness(pilot: Node, burning: Array) -> float:
 		nearest += 1000.0
 	return nearest
 
-func _free_cannon(_cannon: Node) -> bool:
-	return true
+func _watch_humans(delta: float) -> void:
+	for cannon in get_tree().get_nodes_in_group("cannons"):
+		var near := false
+		for crew in get_tree().get_nodes_in_group("crew"):
+			if not PlayerRegistry.is_bot(crew.device_id) and crew.global_position.distance_to(cannon.global_position) < HUMAN_GUN_RANGE:
+				near = true
+				break
+		_human_at_gun[cannon] = _human_at_gun.get(cannon, 0.0) + delta if near else 0.0
+
+func _free_cannon(cannon: Node) -> bool:
+	return _human_at_gun.get(cannon, 0.0) < HUMAN_GUN_TIME
 
 func _dist(pilot: Node, node: Node2D) -> float:
 	return pilot.get_parent().global_position.distance_to(node.global_position)
