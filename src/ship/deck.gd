@@ -4,6 +4,7 @@ const CREW_SCENE := preload("res://src/crew/crew.tscn")
 
 @onready var _hull: TileMapLayer = $Hull
 @onready var _enemy: EnemyShip = $EnemyShip
+@onready var _nav := DeckNav.new(_hull)
 
 const SPAWN_POSITIONS: Array[Vector2] = [
 	Vector2(168, 88), Vector2(168, 120), Vector2(200, 88),
@@ -20,6 +21,10 @@ func _ready() -> void:
 		crew.accent = player.color
 		add_child(crew)
 		crew.position = SPAWN_POSITIONS[i % SPAWN_POSITIONS.size()]
+		if player.is_bot:
+			var pilot := BotPilot.new()
+			pilot.nav = _nav
+			crew.add_child(pilot)
 	_enemy.broadside_landed.connect(_on_broadside_landed)
 	for cannon in get_tree().get_nodes_in_group("cannons"):
 		cannon.fired.connect(_on_cannon_fired)
