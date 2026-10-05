@@ -5,6 +5,7 @@ const CREW_SCENE := preload("res://src/crew/crew.tscn")
 @onready var _hull: TileMapLayer = $Hull
 @onready var _enemy: EnemyShip = $EnemyShip
 @onready var _nav := DeckNav.new(_hull)
+var _jobs := JobBoard.new()
 
 const SPAWN_POSITIONS: Array[Vector2] = [
 	Vector2(168, 88), Vector2(168, 120), Vector2(200, 88),
@@ -13,6 +14,8 @@ const SPAWN_POSITIONS: Array[Vector2] = [
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	_jobs.fire = $Fire
+	add_child(_jobs)
 	var roster := PlayerRegistry.players()
 	for i in range(roster.size()):
 		var player = roster[i]
@@ -24,10 +27,12 @@ func _ready() -> void:
 		if player.is_bot:
 			var pilot := BotPilot.new()
 			pilot.nav = _nav
+			pilot.jobs = _jobs
 			pilot.fire = $Fire
 			pilot.water_butt = $WaterButt
 			pilot.home = crew.position
 			crew.add_child(pilot)
+			_jobs.enlist(pilot)
 	_enemy.broadside_landed.connect(_on_broadside_landed)
 	for cannon in get_tree().get_nodes_in_group("cannons"):
 		cannon.fired.connect(_on_cannon_fired)

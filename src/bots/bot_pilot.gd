@@ -37,6 +37,7 @@ const WOBBLE := 0.6 # radians at full noise - the noise seldom passes half that
 const WOBBLE_RATE := 40.0 # noise samples per second - lower is lazier
 
 var nav: DeckNav
+var jobs: JobBoard
 var fire: FireHazard
 var water_butt: Node2D
 var home: Vector2
@@ -50,6 +51,7 @@ var _stuck := 0.0
 var _target_cell := Vector2i.MIN
 var _throw_cooldown := 0.0
 var _seen_fires: Array = []
+var _job := {}
 var _next_glance := 0.0
 var _hesitating := 0.0
 var _pace := 1.0
@@ -76,10 +78,14 @@ func _physics_process(delta: float) -> void:
 		_hesitating -= delta
 		stop()
 		return
-	_fight_fire(delta)
+	match _job.get("kind"):
+		"fire": _fight_fire(delta)
+		"cannon": go_to(_job.cannon.global_position, delta)
+		_: go_to(home, delta)
 
 func _glance() -> void:
 	_seen_fires = fire.burning_cells()
+	_job = jobs.job_for(self)
 	_next_glance = randf_range(GLANCE_MIN, GLANCE_MAX)
 	if randf() < HESITATE_CHANCE:
 		_hesitating = randf_range(HESITATE_MIN, HESITATE_MAX)
