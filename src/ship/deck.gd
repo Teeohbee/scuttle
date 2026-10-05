@@ -30,6 +30,8 @@ func _ready() -> void:
 			pilot.jobs = _jobs
 			pilot.fire = $Fire
 			pilot.water_butt = $WaterButt
+			pilot.magazine = $Magazine
+			pilot.shot_locker = $ShotLocker
 			pilot.home = crew.position
 			crew.add_child(pilot)
 			_jobs.enlist(pilot)
