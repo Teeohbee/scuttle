@@ -3,27 +3,48 @@ extends RefCounted
 # Walkable grid for bots, read from the Hull tilemap: any tile with a collision
 # polygon is wall, anything else is floor. Repaint the hull and the bots follow.
 
-# Doorways are two tiles wide. Crew heading down take the right-hand tile and crew
-# heading up the left, so two-way traffic passes instead of meeting head on.
+# Bots keep left. Doorways are two tiles wide: crew heading down take the
+# right-hand tile (their left) and crew heading up the other. In the corridor,
+# crew heading east keep to the upper half and crew heading west the lower -
+# beside each mast the corridor is one crew wide, so meeting there head on jams.
 const LANE_SHIFT := 8.0
+# How much a bot dislikes the oncoming lane: enough to route round, not enough
+# to walk the length of the ship to avoid one tile.
+const ONCOMING_COST := 4.0
 
 var _hull: TileMapLayer
-var _grid := AStarGrid2D.new()
+var _eastbound := AStarGrid2D.new()
+var _westbound := AStarGrid2D.new()
 var _doors := {}
 
 func _init(hull: TileMapLayer) -> void:
 	_hull = hull
-	_grid.region = hull.get_used_rect()
-	_grid.cell_size = hull.tile_set.tile_size
-	_grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
-	_grid.update()
-	for x in range(_grid.region.position.x, _grid.region.end.x):
-		for y in range(_grid.region.position.y, _grid.region.end.y):
-			if _is_wall(Vector2i(x, y)):
-				_grid.set_point_solid(Vector2i(x, y))
+	var corridor: Array[Vector2i] = []
 	for cell in hull.get_used_cells():
-		if not _is_wall(cell) and _room(cell) == "" and (_room(cell + Vector2i.UP) != "" or _room(cell + Vector2i.DOWN) != ""):
+		if _is_wall(cell) or _room(cell) != "":
+			continue
+		if _room(cell + Vector2i.UP) != "" or _room(cell + Vector2i.DOWN) != "":
 			_doors[cell] = true
+		else:
+			corridor.append(cell)
+	var middle := 0.0
+	for cell in corridor:
+		middle += cell.y
+	middle /= max(corridor.size(), 1)
+	for grid in [_eastbound, _westbound]:
+		grid.region = hull.get_used_rect()
+		grid.cell_size = hull.tile_set.tile_size
+		grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+		grid.update()
+		for x in range(grid.region.position.x, grid.region.end.x):
+			for y in range(grid.region.position.y, grid.region.end.y):
+				if _is_wall(Vector2i(x, y)):
+					grid.set_point_solid(Vector2i(x, y))
+	for cell in corridor:
+		if cell.y > middle:
+			_eastbound.set_point_weight_scale(cell, ONCOMING_COST)
+		elif cell.y < middle:
+			_westbound.set_point_weight_scale(cell, ONCOMING_COST)
 
 # World-space waypoints from one point to another, ending exactly on `to`.
 # Empty when there's no way through.
@@ -33,7 +54,8 @@ func path(from: Vector2, to: Vector2) -> Array[Vector2]:
 	var b := cell_of(to)
 	if not walkable(a) or not walkable(b):
 		return out
-	var cells := _grid.get_id_path(a, b)
+	var grid := _eastbound if b.x >= a.x else _westbound
+	var cells := grid.get_id_path(a, b)
 	for i in range(1, cells.size()):
 		var cell: Vector2i = cells[i]
 		var p := world_of(cell)
@@ -48,7 +70,7 @@ func path(from: Vector2, to: Vector2) -> Array[Vector2]:
 	return out
 
 func walkable(cell: Vector2i) -> bool:
-	return _grid.is_in_boundsv(cell) and not _grid.is_point_solid(cell)
+	return _eastbound.is_in_boundsv(cell) and not _eastbound.is_point_solid(cell)
 
 func cell_of(p: Vector2) -> Vector2i:
 	return _hull.local_to_map(_hull.to_local(p))
