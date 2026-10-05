@@ -17,6 +17,8 @@ func _ready() -> void:
 	_jobs.fire = $Fire
 	add_child(_jobs)
 	var roster := PlayerRegistry.players()
+	var stations: Array = get_tree().get_nodes_in_group("stations").filter(func(s): return s is Station).map(func(s): return s.global_position)
+	var quiet := _nav.quiet_spots(stations, roster.size())
 	for i in range(roster.size()):
 		var player = roster[i]
 		var crew := CREW_SCENE.instantiate()
@@ -32,7 +34,7 @@ func _ready() -> void:
 			pilot.water_butt = $WaterButt
 			pilot.magazine = $Magazine
 			pilot.shot_locker = $ShotLocker
-			pilot.home = crew.position
+			pilot.home = quiet[i]
 			crew.add_child(pilot)
 			_jobs.enlist(pilot)
 	_enemy.broadside_landed.connect(_on_broadside_landed)

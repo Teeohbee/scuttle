@@ -45,7 +45,7 @@ var fire: FireHazard
 var water_butt: Node2D
 var magazine: Node2D
 var shot_locker: Node2D
-var home: Vector2
+var home: Vector2 # where to wait when there's nothing to do - out of the traffic
 
 var _crew: CharacterBody2D
 var _suffix: String

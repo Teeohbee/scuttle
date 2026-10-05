@@ -69,6 +69,31 @@ func path(from: Vector2, to: Vector2) -> Array[Vector2]:
 		out.append(to)
 	return out
 
+# Room tiles as far as possible from the given points (stations, say) and from
+# each other - somewhere for idle crew to stand that isn't in anyone's way.
+func quiet_spots(avoid: Array, count: int) -> Array[Vector2]:
+	var candidates: Array[Vector2] = []
+	for cell in _hull.get_used_cells():
+		if not _is_wall(cell) and _room(cell) != "":
+			candidates.append(world_of(cell))
+	var taken: Array = avoid.duplicate()
+	for door in _doors:
+		taken.append(world_of(door))
+	var out: Array[Vector2] = []
+	for i in count:
+		var best := Vector2.INF
+		var best_gap := -1.0
+		for p in candidates:
+			var gap := INF
+			for q in taken:
+				gap = minf(gap, p.distance_to(q))
+			if gap > best_gap:
+				best_gap = gap
+				best = p
+		out.append(best)
+		taken.append(best)
+	return out
+
 func walkable(cell: Vector2i) -> bool:
 	return _eastbound.is_in_boundsv(cell) and not _eastbound.is_point_solid(cell)
 
