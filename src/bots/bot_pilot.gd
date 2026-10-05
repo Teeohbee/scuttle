@@ -28,6 +28,14 @@ const HESITATE_CHANCE := 0.08
 const HESITATE_MIN := 0.5
 const HESITATE_MAX := 1.2
 
+# People don't walk on rails. Each bot has its own pace, and its heading and
+# speed drift with slow noise, so routes curve and nobody arrives in step.
+const PACE_MIN := 0.85
+const PACE_MAX := 1.0
+const PACE_DRIFT := 0.16
+const WOBBLE := 0.6 # radians at full noise - the noise seldom passes half that
+const WOBBLE_RATE := 40.0 # noise samples per second - lower is lazier
+
 var nav: DeckNav
 var fire: FireHazard
 var water_butt: Node2D
@@ -44,16 +52,23 @@ var _throw_cooldown := 0.0
 var _seen_fires: Array = []
 var _next_glance := 0.0
 var _hesitating := 0.0
+var _pace := 1.0
+var _noise := FastNoiseLite.new()
+var _clock := 0.0
 
 func _ready() -> void:
 	_crew = get_parent()
 	_suffix = PlayerRegistry.suffix(_crew.device_id)
+	_pace = randf_range(PACE_MIN, PACE_MAX)
+	_noise.seed = randi()
+	_noise.frequency = 0.01
 	# Press before the crew reads its input this frame, or every "just pressed"
 	# lands a frame late and is missed.
 	process_physics_priority = -1
 
 func _physics_process(delta: float) -> void:
 	_throw_cooldown -= delta
+	_clock += delta
 	_next_glance -= delta
 	if _next_glance <= 0.0:
 		_glance()
@@ -150,8 +165,13 @@ func go_to(goal: Vector2, delta: float) -> bool:
 			_path = nav.path(pos, goal)
 			_stuck = 0.0
 			_last_gap = INF
-	steer(dir)
+	steer(_wander(dir))
 	return false
+
+func _wander(dir: Vector2) -> Vector2:
+	var at := _clock * WOBBLE_RATE
+	var speed := _pace + PACE_DRIFT * _noise.get_noise_2d(at, 1000.0)
+	return dir.rotated(WOBBLE * _noise.get_noise_1d(at)) * clampf(speed, 0.0, 1.0)
 
 func _give_way(dir: Vector2) -> Vector2:
 	for other in get_tree().get_nodes_in_group("crew"):
