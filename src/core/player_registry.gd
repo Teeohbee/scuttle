@@ -2,6 +2,9 @@ extends Node
 
 const KEYBOARD_WASD := -1
 const KEYBOARD_ARROWS := -2
+# Bots press real Input Map actions on made-up pads, numbered from here so they
+# never collide with a joypad Godot reports (those count up from 0).
+const BOT_DEVICE_BASE := 100
 
 const MAX_PLAYERS := 6
 const ACCENT_COLORS: Array[Color] = [
@@ -17,8 +20,9 @@ const SCHEME_SUFFIX := {
 const PAD_ACTIONS := [
 	"move_left", "move_right", "move_up", "move_down", "interact", "join"
 ]
+const BOT_ACTIONS := ["move_left", "move_right", "move_up", "move_down", "interact"]
 
-var _players: Dictionary = {} # device_id -> { device_id, number, color }
+var _players: Dictionary = {} # device_id -> { device_id, number, color, is_bot }
 
 func _ready() -> void:
 	for device_id in Input.get_connected_joypads():
@@ -79,7 +83,7 @@ func join(device_id: int) -> Dictionary:
 	if _players.size() >= MAX_PLAYERS:
 		return {}
 	var number := _lowest_free_number()
-	var player := {"device_id": device_id, "number": number, "color": ACCENT_COLORS[number -1]}
+	var player := {"device_id": device_id, "number": number, "color": ACCENT_COLORS[number -1], "is_bot": false}
 	_players[device_id] = player
 	return player
 
@@ -92,6 +96,31 @@ func join_all_connected() -> Array:
 	for device_id in connected_devices():
 		join(device_id)
 	return players()
+
+# A bot is a player whose pad is pressed by code. Its actions exist in the
+# Input Map with no events bound, so has_device() and move_vector() treat it
+# exactly like a human - the "six statues" trap from Watch 10 doesn't apply.
+func add_bot() -> Dictionary:
+	if _players.size() >= MAX_PLAYERS:
+		return {}
+	var device_id := BOT_DEVICE_BASE
+	while _players.has(device_id):
+		device_id += 1
+	for action in BOT_ACTIONS:
+		var per_device := "%s_pad%d" % [action, device_id]
+		if not InputMap.has_action(per_device):
+			InputMap.add_action(per_device, 0.0)
+	var player := join(device_id)
+	player.is_bot = true
+	return player
+
+func fill_with_bots() -> Array:
+	while _players.size() < MAX_PLAYERS:
+		add_bot()
+	return players()
+
+func humans() -> Array:
+	return players().filter(func(p): return not p.is_bot)
 
 func reset() -> void:
 	_players.clear()
