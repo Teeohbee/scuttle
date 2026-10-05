@@ -24,6 +24,9 @@ func _ready() -> void:
 		if player.is_bot:
 			var pilot := BotPilot.new()
 			pilot.nav = _nav
+			pilot.fire = $Fire
+			pilot.water_butt = $WaterButt
+			pilot.home = crew.position
 			crew.add_child(pilot)
 	_enemy.broadside_landed.connect(_on_broadside_landed)
 	for cannon in get_tree().get_nodes_in_group("cannons"):

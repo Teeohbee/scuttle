@@ -12,7 +12,15 @@ const REPATH_TIME := 1.5
 # meeting head on both step aside and pass, like the doorway lanes.
 const GIVE_WAY_RANGE := 18.0
 
+# Seconds between presses when throwing - a held button only throws once.
+const THROW_COOLDOWN := 0.2
+# Empty-handed crew step out of the way of anyone carrying water this close.
+const CLEAR_WAY_RANGE := 22.0
+
 var nav: DeckNav
+var fire: FireHazard
+var water_butt: Node2D
+var home: Vector2
 
 var _crew: CharacterBody2D
 var _suffix: String
@@ -20,6 +28,8 @@ var _path: Array[Vector2] = []
 var _goal := Vector2.INF
 var _last_gap := INF
 var _stuck := 0.0
+var _target_cell := Vector2i.MIN
+var _throw_cooldown := 0.0
 
 func _ready() -> void:
 	_crew = get_parent()
@@ -28,8 +38,68 @@ func _ready() -> void:
 	# lands a frame late and is missed.
 	process_physics_priority = -1
 
-func _physics_process(_delta: float) -> void:
-	pass
+func _physics_process(delta: float) -> void:
+	_throw_cooldown -= delta
+	_fight_fire(delta)
+
+# --- behaviour ------------------------------------------------------------
+
+# Fill a bucket at the water butt, carry it to the nearest fire, throw, repeat.
+# With nothing burning, go home and wait.
+func _fight_fire(delta: float) -> void:
+	var item: Carryable = _crew.held_item
+	var full := item != null and item.kind == Carryable.Kind.BUCKET_WATER
+	var at_butt := _crew.global_position.distance_to(water_butt.global_position) <= 12.0
+	if not full and is_holding_interact() and not at_butt:
+		hold_interact(false)
+	if fire.burning_cells().is_empty():
+		hold_interact(false)
+		go_to(home, delta)
+		return
+	if not full:
+		if _clear_way():
+			return
+		if go_to(water_butt.global_position, delta) or at_butt:
+			stop()
+			hold_interact(true)
+		return
+	if is_holding_interact():
+		hold_interact(false)
+		return
+	if not fire.is_burning(_target_cell):
+		_target_cell = _nearest_fire()
+	if fire.can_douse_from(_crew.global_position):
+		stop()
+		if _throw_cooldown <= 0.0:
+			hold_interact(true)
+			_throw_cooldown = THROW_COOLDOWN
+		return
+	go_to(fire.world_of(_target_cell), delta)
+
+func _nearest_fire() -> Vector2i:
+	var best := Vector2i.MIN
+	var best_d := INF
+	for cell in fire.burning_cells():
+		var d := _crew.global_position.distance_to(fire.world_of(cell))
+		if d < best_d:
+			best = cell
+			best_d = d
+	return best
+
+# Step away from crew carrying water, so the butt doesn't silt up with people
+# queueing and the full buckets can get out.
+func _clear_way() -> bool:
+	for other in get_tree().get_nodes_in_group("crew"):
+		if other == _crew or other.held_item == null or other.held_item.kind != Carryable.Kind.BUCKET_WATER:
+			continue
+		var away: Vector2 = _crew.global_position - other.global_position
+		if away.length() < CLEAR_WAY_RANGE:
+			hold_interact(false)
+			steer(away.normalized())
+			return true
+	return false
+
+# --- movement -------------------------------------------------------------
 
 # Walk towards `goal`. True once standing on it.
 func go_to(goal: Vector2, delta: float) -> bool:
