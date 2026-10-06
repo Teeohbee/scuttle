@@ -19,8 +19,9 @@ const SPLASH := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1
 
 var _burning: Dictionary = {}
 var _damp: Dictionary = {}
-# Each cell's own clock: when it may next spread. A cell lit just now waits a
-# full SPREAD_INTERVAL, however far through anyone else's interval it is.
+# When each cell's patch may next spread. A patch goes by its earliest cell, so
+# a fresh outbreak waits a full SPREAD_INTERVAL and two fires that meet keep
+# the sooner clock.
 var _next_spread: Dictionary = {}
 var _fuse := Timer.new()
 
@@ -77,28 +78,54 @@ func perform_interact(crew) -> void:
 		_extinguish(cell + offset)
 	crew.held_item.set_kind(Carryable.Kind.BUCKET_EMPTY)
 
+# Each separate fire - a connected patch of burning cells - lights one new cell
+# every SPREAD_INTERVAL, however big it is. Per-cell spreading grew with the
+# fire's edge, so a crew either caught it at once or lost it entirely; a fixed
+# rate per fire lets them fall behind and claw it back.
 func _spread() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
-	var frontier: Array = _burning.keys()
-	for cell in frontier:
-		if now < _next_spread[cell]:
+	if not _next_spread.values().any(func(due): return due <= now):
+		return
+	var seen := {}
+	for cell in _burning.keys():
+		if seen.has(cell):
 			continue
-		_next_spread[cell] = now + SPREAD_INTERVAL
-		var room := _room_of(cell)
-		var catchable: Array[Vector2i] = []
-		for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-			var neighbor: Vector2i = cell + offset
-			if _burning.has(neighbor):
-				continue
-			if _damp.has(neighbor) and _damp[neighbor] > now:
-				continue
-			if _room_of(neighbor) != room:
-				continue
-			catchable.append(neighbor)
-		# One neighbour per tick, not all four: the fire creeps instead of
-		# growing as a diamond that fills a room in a few ticks.
+		var patch := _patch_of(cell)
+		var due := INF
+		for c in patch:
+			seen[c] = true
+			due = minf(due, _next_spread[c])
+		if now < due:
+			continue
+		for c in patch:
+			_next_spread[c] = now + SPREAD_INTERVAL
+		var catchable := {}
+		for c in patch:
+			for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var neighbor: Vector2i = c + offset
+				if _burning.has(neighbor) or catchable.has(neighbor):
+					continue
+				if _damp.has(neighbor) and _damp[neighbor] > now:
+					continue
+				if not _flammable(neighbor):
+					continue
+				catchable[neighbor] = true
 		if not catchable.is_empty():
-			_ignite(catchable.pick_random())
+			_ignite(catchable.keys().pick_random())
+
+# The burning cells connected to this one, side by side.
+func _patch_of(cell: Vector2i) -> Array[Vector2i]:
+	var patch: Array[Vector2i] = [cell]
+	var found := {cell: true}
+	var i := 0
+	while i < patch.size():
+		for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var neighbor: Vector2i = patch[i] + offset
+			if _burning.has(neighbor) and not found.has(neighbor):
+				found[neighbor] = true
+				patch.append(neighbor)
+		i += 1
+	return patch
 
 func _extinguish(cell: Vector2i) -> void:
 	if not _burning.has(cell):
@@ -151,6 +178,12 @@ func _ignitable_cells() -> Array[Vector2i]:
 		if _room_of(cell) != "":
 			cells.append(cell)
 	return cells
+
+# Any deck a crew member could stand on burns - rooms, doorways and the
+# corridor between them - so fire left alone walks from room to room.
+func _flammable(cell: Vector2i) -> bool:
+	var data := hull.get_cell_tile_data(cell)
+	return data != null and data.get_collision_polygons_count(0) == 0
 
 func _room_of(cell: Vector2i) -> String:
 	var data := hull.get_cell_tile_data(cell)
