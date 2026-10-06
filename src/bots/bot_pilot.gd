@@ -102,7 +102,7 @@ func _glance() -> void:
 func _fight_fire(delta: float) -> void:
 	var item: Carryable = _crew.held_item
 	if item and item.kind != Carryable.Kind.BUCKET_WATER and item.kind != Carryable.Kind.BUCKET_EMPTY:
-		_drop(delta)
+		_drop(water_butt, delta)
 		return
 	var full := item != null and item.kind == Carryable.Kind.BUCKET_WATER
 	var at_butt := _crew.global_position.distance_to(water_butt.global_position) <= 12.0
@@ -139,7 +139,7 @@ func _crew_cannon(cannon: Node2D, delta: float) -> void:
 		cannon.Phase.EMPTY, cannon.Phase.COOLDOWN: need = Carryable.Kind.POWDER
 		cannon.Phase.POWDERED: need = Carryable.Kind.SHOT
 	if item and item.kind != need:
-		_drop(delta)
+		_drop(cannon, delta)
 		return
 	if need != -1 and item == null:
 		_fetch(magazine if need == Carryable.Kind.POWDER else shot_locker, delta)
@@ -174,12 +174,13 @@ func _human_using(station: Node2D) -> bool:
 			return true
 	return false
 
-# Put down whatever's in hand, clear of the stations.
-func _drop(delta: float) -> void:
+# Put down whatever's in hand as soon as we're clear of the stations, carrying
+# on towards `heading` until then - or home, if that's the station in the way.
+func _drop(heading: Node2D, delta: float) -> void:
 	for station in get_tree().get_nodes_in_group("stations"):
 		if station is Station and station.global_position.distance_to(_crew.global_position) < DROP_CLEARANCE:
 			hold_interact(false)
-			go_to(home, delta)
+			go_to(home if station == heading else heading.global_position, delta)
 			return
 	stop()
 	_tap()
