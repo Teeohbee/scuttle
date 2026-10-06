@@ -12,8 +12,11 @@ const REPATH_TIME := 1.5
 # meeting head on both step aside and pass, like the doorway lanes.
 const GIVE_WAY_RANGE := 18.0
 
-# Seconds between presses when throwing - a held button only throws once.
-const THROW_COOLDOWN := 0.2
+# Seconds between taps of interact - a held button only counts once.
+const TAP_COOLDOWN := 0.2
+# Dropping something unwanted only happens this far from any station, or the
+# press would load a gun or pick something up instead.
+const DROP_CLEARANCE := 28.0
 # Empty-handed crew step out of the way of anyone carrying water this close.
 const CLEAR_WAY_RANGE := 22.0
 
@@ -37,9 +40,12 @@ const WOBBLE := 0.6 # radians at full noise - the noise seldom passes half that
 const WOBBLE_RATE := 40.0 # noise samples per second - lower is lazier
 
 var nav: DeckNav
+var jobs: JobBoard
 var fire: FireHazard
 var water_butt: Node2D
-var home: Vector2
+var magazine: Node2D
+var shot_locker: Node2D
+var home: Vector2 # where to wait when there's nothing to do - out of the traffic
 
 var _crew: CharacterBody2D
 var _suffix: String
@@ -48,8 +54,9 @@ var _goal := Vector2.INF
 var _last_gap := INF
 var _stuck := 0.0
 var _target_cell := Vector2i.MIN
-var _throw_cooldown := 0.0
+var _tap_cooldown := 0.0
 var _seen_fires: Array = []
+var _job := {}
 var _next_glance := 0.0
 var _hesitating := 0.0
 var _pace := 1.0
@@ -67,7 +74,7 @@ func _ready() -> void:
 	process_physics_priority = -1
 
 func _physics_process(delta: float) -> void:
-	_throw_cooldown -= delta
+	_tap_cooldown -= delta
 	_clock += delta
 	_next_glance -= delta
 	if _next_glance <= 0.0:
@@ -76,10 +83,14 @@ func _physics_process(delta: float) -> void:
 		_hesitating -= delta
 		stop()
 		return
-	_fight_fire(delta)
+	match _job.get("kind"):
+		"fire": _fight_fire(delta)
+		"cannon": _crew_cannon(_job.cannon, delta)
+		_: go_to(home, delta)
 
 func _glance() -> void:
 	_seen_fires = fire.burning_cells()
+	_job = jobs.job_for(self)
 	_next_glance = randf_range(GLANCE_MIN, GLANCE_MAX)
 	if randf() < HESITATE_CHANCE:
 		_hesitating = randf_range(HESITATE_MIN, HESITATE_MAX)
@@ -90,6 +101,9 @@ func _glance() -> void:
 # With nothing burning, go home and wait.
 func _fight_fire(delta: float) -> void:
 	var item: Carryable = _crew.held_item
+	if item and item.kind != Carryable.Kind.BUCKET_WATER and item.kind != Carryable.Kind.BUCKET_EMPTY:
+		_drop(water_butt, delta)
+		return
 	var full := item != null and item.kind == Carryable.Kind.BUCKET_WATER
 	var at_butt := _crew.global_position.distance_to(water_butt.global_position) <= 12.0
 	if not full and is_holding_interact() and not at_butt:
@@ -103,7 +117,7 @@ func _fight_fire(delta: float) -> void:
 			return
 		if go_to(water_butt.global_position, delta) or at_butt:
 			stop()
-			hold_interact(true)
+			hold_interact(not _human_using(water_butt))
 		return
 	if is_holding_interact():
 		hold_interact(false)
@@ -112,11 +126,72 @@ func _fight_fire(delta: float) -> void:
 		_target_cell = _nearest_fire()
 	if fire.can_douse_from(_crew.global_position):
 		stop()
-		if _throw_cooldown <= 0.0:
-			hold_interact(true)
-			_throw_cooldown = THROW_COOLDOWN
+		_tap()
 		return
 	go_to(fire.world_of(_target_cell), delta)
+
+# Powder from the magazine, shot from the locker, hold bare-handed to run the
+# gun out, then fire. While it cools, fetch the next keg and wait beside it.
+func _crew_cannon(cannon: Node2D, delta: float) -> void:
+	var item: Carryable = _crew.held_item
+	var need := -1 # bare hands
+	match cannon.phase:
+		cannon.Phase.EMPTY, cannon.Phase.COOLDOWN: need = Carryable.Kind.POWDER
+		cannon.Phase.POWDERED: need = Carryable.Kind.SHOT
+	if item and item.kind != need:
+		_drop(cannon, delta)
+		return
+	if need != -1 and item == null:
+		_fetch(magazine if need == Carryable.Kind.POWDER else shot_locker, delta)
+		return
+	if not cannon.crew_is_near(_crew):
+		hold_interact(false)
+		go_to(cannon.global_position, delta)
+		return
+	stop()
+	match cannon.phase:
+		cannon.Phase.COOLDOWN:
+			hold_interact(false)
+		cannon.Phase.LOADED:
+			hold_interact(true)
+		_:
+			_tap()
+
+# Stand at a source station holding interact until it hands something over.
+# If a human's already filling up there, wait for them rather than barge in.
+func _fetch(source: Node2D, delta: float) -> void:
+	if source.crew_is_near(_crew):
+		stop()
+		hold_interact(not _human_using(source))
+		return
+	hold_interact(false)
+	go_to(source.global_position, delta)
+
+func _human_using(station: Node2D) -> bool:
+	for other in get_tree().get_nodes_in_group("crew"):
+		if other != _crew and not PlayerRegistry.is_bot(other.device_id) \
+				and station.crew_is_near(other) and PlayerRegistry.is_interact_pressed(other.device_id):
+			return true
+	return false
+
+# Put down whatever's in hand as soon as we're clear of the stations, carrying
+# on towards `heading` until then - or home, if that's the station in the way.
+func _drop(heading: Node2D, delta: float) -> void:
+	for station in get_tree().get_nodes_in_group("stations"):
+		if station is Station and station.global_position.distance_to(_crew.global_position) < DROP_CLEARANCE:
+			hold_interact(false)
+			go_to(home if station == heading else heading.global_position, delta)
+			return
+	stop()
+	_tap()
+
+# One press: down this frame, up the next.
+func _tap() -> void:
+	if is_holding_interact():
+		hold_interact(false)
+	elif _tap_cooldown <= 0.0:
+		hold_interact(true)
+		_tap_cooldown = TAP_COOLDOWN
 
 func _nearest_fire() -> Vector2i:
 	var best := Vector2i.MIN
