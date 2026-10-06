@@ -35,6 +35,19 @@ func ignite_random() -> void:
 	_ignite(cell)
 	outbreak.emit(cell)
 
+func burning_cells() -> Array:
+	return _burning.keys()
+
+func is_burning(cell: Vector2i) -> bool:
+	return _burning.has(cell)
+
+# Whether a bucket thrown from here would land on a fire.
+func can_douse_from(pos: Vector2) -> bool:
+	return _nearest_burning(pos) != Vector2i.MIN
+
+func world_of(cell: Vector2i) -> Vector2:
+	return _world_of(cell)
+
 func claims_interact(crew) -> bool:
 	if crew.held_item == null or crew.held_item.kind != Carryable.Kind.BUCKET_WATER:
 		return false
