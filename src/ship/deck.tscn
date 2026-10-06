@@ -1163,7 +1163,8 @@ position = Vector2(256, -50)
 
 [node name="Feed" parent="." instance=ExtResource("11_feed")]
 
-[node name="Hud" parent="." node_paths=PackedStringArray("enemy") instance=ExtResource("12_hud")]
+[node name="Hud" parent="." node_paths=PackedStringArray("enemy", "fire") instance=ExtResource("12_hud")]
 enemy = NodePath("../EnemyShip")
+fire = NodePath("../Fire")
 
 [node name="Scoreboard" parent="." instance=ExtResource("13_scoreboard")]

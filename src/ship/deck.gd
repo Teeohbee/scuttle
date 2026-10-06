@@ -42,6 +42,8 @@ func _ready() -> void:
 		cannon.fired.connect(_on_cannon_fired)
 	$Fire.outbreak.connect(func(cell): $Feed.push("Fire in %s!" % _room_name(cell)))
 	_enemy.fired.connect(func(): $Feed.push("The enemy fired!"))
+	$Fire.fuse_lit.connect(func(): $Feed.push("The magazine's alight! Douse it!"))
+	$Fire.fuse_out.connect(func(): $Feed.push("Magazine saved."))
 
 func _room_name(cell: Vector2i) -> String:
 	var data := _hull.get_cell_tile_data(cell)
