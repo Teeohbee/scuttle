@@ -5,6 +5,9 @@ signal outbreak(cell: Vector2i)
 signal fuse_lit
 signal fuse_out
 
+const TILESHEET := preload("res://assets/kenney_1-bit-pack/Tilesheet/colored-transparent.png")
+const FLAME_REGION := Rect2(255, 170, 16, 16) # column 15, row 10
+
 const SPREAD_INTERVAL := 3.0
 const DOUSE_REACH := 20.0
 const MAGAZINE_ROOM := 'magazine'
@@ -157,11 +160,12 @@ func _nearest_burning(from: Vector2) -> Vector2i:
 func _ignite(cell: Vector2i) -> void:
 	if _burning.has(cell):
 		return
-	var visual := ColorRect.new()
-	visual.size = Vector2(16, 16)
-	visual.color = Color(0.85, 0.25, 0.1)
+	var visual := Sprite2D.new()
+	visual.texture = TILESHEET
+	visual.region_enabled = true
+	visual.region_rect = FLAME_REGION
 	add_child(visual)
-	visual.global_position = _world_of(cell) - Vector2(8,8)
+	visual.global_position = _world_of(cell)
 	_burning[cell] = visual
 	_next_spread[cell] = (Time.get_ticks_msec() / 1000.0) + SPREAD_INTERVAL
 
