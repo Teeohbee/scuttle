@@ -31,6 +31,10 @@ window/stretch/mode="viewport"
 window/stretch/aspect="keep_width"
 window/stretch/scale_mode="integer"
 
+[gui]
+
+theme/custom="res://src/ui/theme.tres"
+
 [input]
 
 move_left_wasd={

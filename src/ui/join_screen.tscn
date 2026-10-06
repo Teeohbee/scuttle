@@ -18,7 +18,7 @@ anchor_right = 1.0
 offset_top = 44.0
 offset_bottom = 80.0
 grow_horizontal = 2
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 32
 text = "SCUTTLE"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -45,13 +45,12 @@ alignment = 1
 
 [node name="Label" type="Label" parent="Slots/PanelContainer/Layout" unique_id=229534175]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 32
 text = "P1"
 horizontal_alignment = 1
 
 [node name="Status" type="Label" parent="Slots/PanelContainer/Layout" unique_id=1419539965]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
 text = "PRESS TO JOIN"
 horizontal_alignment = 1
 
@@ -66,13 +65,12 @@ alignment = 1
 
 [node name="Label" type="Label" parent="Slots/PanelContainer2/Layout" unique_id=1256216532]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 32
 text = "P2"
 horizontal_alignment = 1
 
 [node name="Status" type="Label" parent="Slots/PanelContainer2/Layout" unique_id=960727951]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
 text = "PRESS TO JOIN"
 horizontal_alignment = 1
 
@@ -87,13 +85,12 @@ alignment = 1
 
 [node name="Label" type="Label" parent="Slots/PanelContainer3/Layout" unique_id=1933993796]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 32
 text = "P3"
 horizontal_alignment = 1
 
 [node name="Status" type="Label" parent="Slots/PanelContainer3/Layout" unique_id=576477061]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
 text = "PRESS TO JOIN"
 horizontal_alignment = 1
 
@@ -108,13 +105,12 @@ alignment = 1
 
 [node name="Label" type="Label" parent="Slots/PanelContainer4/Layout" unique_id=741197278]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 32
 text = "P4"
 horizontal_alignment = 1
 
 [node name="Status" type="Label" parent="Slots/PanelContainer4/Layout" unique_id=1020692556]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
 text = "PRESS TO JOIN"
 horizontal_alignment = 1
 
@@ -129,13 +125,12 @@ alignment = 1
 
 [node name="Label" type="Label" parent="Slots/PanelContainer5/Layout" unique_id=1912974956]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 32
 text = "P5"
 horizontal_alignment = 1
 
 [node name="Status" type="Label" parent="Slots/PanelContainer5/Layout" unique_id=892843018]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
 text = "PRESS TO JOIN"
 horizontal_alignment = 1
 
@@ -150,13 +145,12 @@ alignment = 1
 
 [node name="Label" type="Label" parent="Slots/PanelContainer6/Layout" unique_id=1864481967]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 32
 text = "P6"
 horizontal_alignment = 1
 
 [node name="Status" type="Label" parent="Slots/PanelContainer6/Layout" unique_id=792563615]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
 text = "PRESS TO JOIN"
 horizontal_alignment = 1
 
@@ -173,6 +167,5 @@ offset_right = 160.0
 offset_bottom = -76.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_font_sizes/font_size = 10
 text = "B / Y - BOTS: OFF"
 horizontal_alignment = 1
