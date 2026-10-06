@@ -31,6 +31,10 @@ window/stretch/mode="viewport"
 window/stretch/aspect="keep_width"
 window/stretch/scale_mode="integer"
 
+[gui]
+
+theme/custom="res://src/ui/theme.tres"
+
 [input]
 
 move_left_wasd={
@@ -136,5 +140,6 @@ toggle_bots={
 
 [rendering]
 
+environment/defaults/default_clear_color=Color(0.06, 0.11, 0.2, 1)
 textures/canvas_textures/default_texture_filter=0
 rendering_device/driver.windows="d3d12"

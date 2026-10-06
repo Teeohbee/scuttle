@@ -2,23 +2,40 @@
 
 [ext_resource type="Script" path="res://src/ui/hud.gd" id="1_hud"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hull_bg"]
+bg_color = Color(0.1, 0.05, 0.05, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.9, 0.85, 0.75, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hull_fill"]
+bg_color = Color(0.85, 0.25, 0.15, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.9, 0.85, 0.75, 1)
+
 [node name="Hud" type="CanvasLayer"]
 script = ExtResource("1_hud")
 
 [node name="EnemyHull" type="ProgressBar" parent="."]
-offset_left = 370.0
-offset_top = 8.0
-offset_right = 490.0
-offset_bottom = 18.0
+offset_left = 260.0
+offset_top = 40.0
+offset_right = 380.0
+offset_bottom = 46.0
+theme_override_styles/background = SubResource("StyleBoxFlat_hull_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_hull_fill")
 value = 100.0
 show_percentage = false
 
 [node name="EnemyHullLabel" type="Label" parent="."]
-offset_left = 370.0
-offset_top = 18.0
-offset_right = 490.0
-offset_bottom = 30.0
-theme_override_font_sizes/font_size = 8
+offset_left = 386.0
+offset_top = 34.0
+offset_right = 486.0
+offset_bottom = 52.0
 text = "ENEMY HULL"
 
 [node name="Fuse" type="Label" parent="."]
@@ -28,6 +45,6 @@ offset_top = 300.0
 offset_right = 470.0
 offset_bottom = 324.0
 theme_override_colors/font_color = Color(1, 0.3, 0.15, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 32
 text = "MAGAZINE ALIGHT - 10"
 horizontal_alignment = 1
