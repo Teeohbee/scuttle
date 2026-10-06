@@ -193,10 +193,14 @@ func _tap() -> void:
 		hold_interact(true)
 		_tap_cooldown = TAP_COOLDOWN
 
+# The magazine first, while its fuse burns - anyone would drop everything for it.
 func _nearest_fire() -> Vector2i:
 	var best := Vector2i.MIN
 	var best_d := INF
+	var magazine_only := _seen_fires.any(func(cell): return fire.in_magazine(cell))
 	for cell in _seen_fires:
+		if magazine_only and not fire.in_magazine(cell):
+			continue
 		var d := _crew.global_position.distance_to(fire.world_of(cell))
 		if d < best_d:
 			best = cell

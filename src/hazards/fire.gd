@@ -57,6 +57,9 @@ func is_burning(cell: Vector2i) -> bool:
 func can_douse_from(pos: Vector2) -> bool:
 	return _nearest_burning(pos) != Vector2i.MIN
 
+func in_magazine(cell: Vector2i) -> bool:
+	return _room_of(cell) == MAGAZINE_ROOM
+
 func world_of(cell: Vector2i) -> Vector2:
 	return _world_of(cell)
 
