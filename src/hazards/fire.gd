@@ -84,7 +84,6 @@ func _spread() -> void:
 		if now < _next_spread[cell]:
 			continue
 		_next_spread[cell] = now + SPREAD_INTERVAL
-		var room := _room_of(cell)
 		var catchable: Array[Vector2i] = []
 		for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 			var neighbor: Vector2i = cell + offset
@@ -92,7 +91,7 @@ func _spread() -> void:
 				continue
 			if _damp.has(neighbor) and _damp[neighbor] > now:
 				continue
-			if _room_of(neighbor) != room:
+			if not _flammable(neighbor):
 				continue
 			catchable.append(neighbor)
 		# One neighbour per tick, not all four: the fire creeps instead of
@@ -151,6 +150,12 @@ func _ignitable_cells() -> Array[Vector2i]:
 		if _room_of(cell) != "":
 			cells.append(cell)
 	return cells
+
+# Any deck a crew member could stand on burns - rooms, doorways and the
+# corridor between them - so fire left alone walks from room to room.
+func _flammable(cell: Vector2i) -> bool:
+	var data := hull.get_cell_tile_data(cell)
+	return data != null and data.get_collision_polygons_count(0) == 0
 
 func _room_of(cell: Vector2i) -> String:
 	var data := hull.get_cell_tile_data(cell)
