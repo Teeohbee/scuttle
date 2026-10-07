@@ -57,6 +57,7 @@ func _on_cannon_fired(damage: float) -> void:
 	_enemy.take_damage(damage)
 
 func _on_broadside_landed() -> void:
+	Fx.shake(3.5)
 	match randi() % 3:
 		0: $Fire.ignite_random()
 		1: return

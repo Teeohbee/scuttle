@@ -80,4 +80,6 @@ func perform_interact(crew: Node2D) -> void:
 			_set_phase(Phase.LOADED)
 		Phase.RUN_OUT:
 			_set_phase(Phase.COOLDOWN)
+			Fx.shake(2.5)
+			Fx.hit_stop()
 			fired.emit(DAMAGE)
