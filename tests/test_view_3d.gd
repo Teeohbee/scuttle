@@ -19,6 +19,20 @@ func test_walls_match_the_collision_tiles() -> void:
 	check_eq(_view(deck).wall_count(), _wall_cells(hull), "3D walls")
 	check_eq(_view(deck).floor_count(), hull.get_used_cells().size() - _wall_cells(hull), "3D floor tiles")
 
+func test_hull_outline_encloses_every_tile() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var hull: TileMapLayer = deck.get_node("Hull")
+	var outline := _view(deck).hull_outline()
+	check(outline.size() > 8, "the hull has an outline")
+	var half := Vector2(hull.tile_set.tile_size) / 2.0
+	for cell in hull.get_used_cells():
+		for corner in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+			var at := _view(deck).to_3d(hull.to_global(hull.map_to_local(cell) + corner * half))
+			if not Geometry2D.is_point_in_polygon(Vector2(at.x, at.z), outline):
+				check(false, "cell %s sticks out of the hull" % cell)
+				return
+
 func test_crew_mirrors_follow_the_crew() -> void:
 	var deck := load_deck(3)
 	_view(deck).set_3d(true, false)

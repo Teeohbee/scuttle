@@ -15,6 +15,8 @@ const GAME_FOV := 50.0
 const GAME_TILT := deg_to_rad(31.0)
 const WALL_HEIGHT := 1.0
 const FLOOR_COLOR := Color(0.48, 0.34, 0.22)
+const HULL_COLOR := Color(0.29, 0.17, 0.11)
+const HULL_DEPTH := 2.2
 const WALL_COLOR := Color(0.36, 0.23, 0.14)
 const ROOM_COLORS := {
 	"magazine": Color(0.49, 0.29, 0.23),
@@ -52,6 +54,8 @@ var _container: SubViewportContainer
 var _viewport: SubViewport
 var _camera: Camera3D
 var _world: Node3D
+var _outline: PackedVector2Array   # the hull's edge at deck level, (x, z) in metres
+var _plank_texture: ImageTexture
 var _wall_count := 0
 var _floor_count := 0
 var _mirrors := {}   # 2D node -> its 3D stand-in
@@ -70,6 +74,7 @@ func _ready() -> void:
 	_world = Node3D.new()
 	_viewport.add_child(_world)
 	_build_stage()
+	_build_hull()
 	_build_deck()
 	_sleep()
 
@@ -154,7 +159,7 @@ func _target() -> Vector3:
 func _smooth(x: float) -> float:
 	return smoothstep(0.0, 1.0, x)
 
-# Camera, sun, sky colour, the sea and a block of hull under the deck.
+# Camera, sun, sky colour and the sea.
 func _build_stage() -> void:
 	_camera = Camera3D.new()
 	_camera.keep_aspect = Camera3D.KEEP_WIDTH
@@ -178,11 +183,6 @@ func _build_stage() -> void:
 	var sea := PlaneMesh.new()
 	sea.size = Vector2(400, 400)
 	_world.add_child(_mesh(sea, Vector3(0, -0.8, 0), Color(0.12, 0.33, 0.48)))
-	var used := hull.get_used_rect()
-	var block := BoxMesh.new()
-	block.size = Vector3(used.size.x + 0.8, 1.6, used.size.y + 0.8)
-	var middle := to_3d(hull.to_global(hull.map_to_local(used.position) + Vector2(used.size - Vector2i.ONE) * PX_PER_M / 2.0))
-	_world.add_child(_mesh(block, middle + Vector3(0, -0.82, 0), Color(0.29, 0.17, 0.11)))
 
 func mirror_of(node: Node) -> Node3D:
 	return _mirrors.get(node)
@@ -197,6 +197,9 @@ func flame_count() -> int:
 func has_flame_at(point: Vector3) -> bool:
 	return _flames.any(func(f): return f.visible and Vector2(f.position.x, f.position.z).distance_to(Vector2(point.x, point.z)) < 0.1)
 
+func hull_outline() -> PackedVector2Array:
+	return _outline
+
 func wall_count() -> int:
 	return _wall_count
 
@@ -205,6 +208,98 @@ func floor_count() -> int:
 
 func to_3d(point: Vector2) -> Vector3:
 	return Vector3(point.x / PX_PER_M, 0.0, point.y / PX_PER_M)
+
+# The hull, from the tiles' bounding box: straight sides, rounded stern corners and a bow that runs
+# forward of the first column. The deck is its top, planked out to the edge.
+func _build_hull() -> void:
+	var r := _deck_rect()
+	var fore := r.position.x - 0.4
+	var aft := r.end.x + 0.3
+	var port := r.position.y - 0.35
+	var starboard := r.end.y + 0.35
+	var mid := r.get_center().y
+	_outline = PackedVector2Array([Vector2(fore + 2.0, port), Vector2(aft - 0.6, port)])
+	_outline += _curve(Vector2(aft - 0.6, port), Vector2(aft, port), Vector2(aft, port + 0.6))
+	_outline.append(Vector2(aft, starboard - 0.6))
+	_outline += _curve(Vector2(aft, starboard - 0.6), Vector2(aft, starboard), Vector2(aft - 0.6, starboard))
+	_outline.append(Vector2(fore + 2.0, starboard))
+	_outline += _curve(Vector2(fore + 2.0, starboard), Vector2(fore - 1.6, starboard), Vector2(fore - 3.2, mid))
+	_outline += _curve(Vector2(fore - 3.2, mid), Vector2(fore - 1.6, port), Vector2(fore + 2.0, port))
+	_outline.remove_at(_outline.size() - 1)   # the bow curve ends where the outline started
+	var deck := _plank_material(FLOOR_COLOR)
+	var sides := StandardMaterial3D.new()
+	sides.albedo_color = HULL_COLOR
+	_world.add_child(_slab(_outline, -HULL_DEPTH, -0.02, sides, deck))
+
+# The used tiles' bounding box on the deck, (x, z) in metres.
+func _deck_rect() -> Rect2:
+	var used := hull.get_used_rect()
+	var half := Vector2(hull.tile_set.tile_size) / 2.0
+	var a := to_3d(hull.to_global(hull.map_to_local(used.position) - half))
+	var b := to_3d(hull.to_global(hull.map_to_local(used.end - Vector2i.ONE) + half))
+	return Rect2(a.x, a.z, b.x - a.x, b.z - a.z)
+
+# Points along a quadratic curve from a to b pulled towards control, not including a.
+func _curve(a: Vector2, control: Vector2, b: Vector2, steps := 8) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in range(1, steps + 1):
+		var t := float(i) / steps
+		out.append(a.lerp(control, t).lerp(control.lerp(b, t), t))
+	return out
+
+# A flat-topped prism: the outline extruded from bottom to top. Normals are set by hand and
+# culling is off, so the outline can wind either way.
+func _slab(outline: PackedVector2Array, bottom: float, top: float, sides: Material, cap: Material) -> MeshInstance3D:
+	var centre := Vector2.ZERO
+	for p in outline:
+		centre += p / outline.size()
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in outline.size():
+		var a := outline[i]
+		var b := outline[(i + 1) % outline.size()]
+		var n := Vector2(b.y - a.y, a.x - b.x).normalized()
+		if n.dot((a + b) / 2.0 - centre) < 0.0:
+			n = -n
+		st.set_normal(Vector3(n.x, 0, n.y))
+		for v in [Vector3(a.x, bottom, a.y), Vector3(b.x, bottom, b.y), Vector3(b.x, top, b.y),
+				Vector3(a.x, bottom, a.y), Vector3(b.x, top, b.y), Vector3(a.x, top, a.y)]:
+			st.add_vertex(v)
+	var mesh := st.commit()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_normal(Vector3.UP)
+	for i in Geometry2D.triangulate_polygon(outline):
+		st.add_vertex(Vector3(outline[i].x, top, outline[i].y))
+	st.commit(mesh)
+	for m in [sides, cap]:
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.set_surface_override_material(0, sides)
+	node.set_surface_override_material(1, cap)
+	return node
+
+# Planks run fore and aft, four to the metre, mapped in world space so every surface lines up.
+func _plank_material(tint: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = tint
+	m.albedo_texture = _planks()
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	return m
+
+func _planks() -> ImageTexture:
+	if _plank_texture:
+		return _plank_texture
+	var img := Image.create(64, 64, false, Image.FORMAT_RGB8)
+	for row in 4:
+		var shade := 0.88 + 0.04 * (row * 7 % 4)
+		img.fill_rect(Rect2i(0, row * 16, 64, 16), Color(shade, shade, shade))
+		img.fill_rect(Rect2i(0, row * 16 + 15, 64, 1), Color(0.45, 0.45, 0.45))     # seam
+		img.fill_rect(Rect2i((row * 37) % 60, row * 16, 2, 15), Color(0.55, 0.55, 0.55))   # butt joint
+	img.generate_mipmaps()
+	_plank_texture = ImageTexture.create_from_image(img)
+	return _plank_texture
 
 # One MultiMesh for the walls and one for the floor, built once from the Hull tiles:
 # a tile with collision is a wall, and the rest are floor tinted by their room.
@@ -225,7 +320,11 @@ func _build_deck() -> void:
 	_world.add_child(_multimesh(wall_box, walls, [], WALL_COLOR))
 	var tile := PlaneMesh.new()
 	tile.size = Vector2(1, 1)
-	_world.add_child(_multimesh(tile, floors, floor_colors, Color.WHITE))
+	var floor := _multimesh(tile, floors, floor_colors, Color.WHITE)
+	floor.material_override = _plank_material(Color.WHITE)
+	floor.material_override.vertex_color_use_as_albedo = true
+	floor.material_override.vertex_color_is_srgb = true
+	_world.add_child(floor)
 	_wall_count = walls.size()
 	_floor_count = floors.size()
 
