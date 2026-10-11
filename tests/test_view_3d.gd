@@ -78,6 +78,15 @@ func test_toggle_switches_to_3d_and_back() -> void:
 	check_near(view.blend(), 0.0, 0.001, "fully 2D")
 	check(not view.is_drawing() and not view.is_processing(), "idle again in 2D")
 
+func test_first_switch_starts_transparent_and_posed() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	view.toggle()
+	# no frame has passed, so the tween hasn't ticked: this is what the first 3D frame draws
+	check_eq(view.opacity(), 0.0, "3D starts see-through")
+	check_near(view.camera().fov, View3D.FLAT_FOV, 0.001, "camera starts flat")
+
 func test_flat_camera_lines_up_with_the_2d_camera() -> void:
 	var deck := load_deck()
 	await frames(2)

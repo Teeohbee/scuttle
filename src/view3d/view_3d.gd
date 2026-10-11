@@ -104,6 +104,9 @@ func set_3d(on: bool, animate := true) -> void:
 func blend() -> float:
 	return _blend
 
+func opacity() -> float:
+	return _container.modulate.a
+
 func camera() -> Camera3D:
 	return _camera
 
@@ -133,10 +136,12 @@ func _apply(b: float) -> void:
 	pose(b)
 
 func _wake() -> void:
+	# Fade and pose before showing: the tween's first tick is a frame away.
+	_sync()
+	_apply(_blend)
 	_container.visible = true
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	set_process(true)
-	_sync()
 
 func _sleep() -> void:
 	_container.visible = false
