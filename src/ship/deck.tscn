@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://enlw2xeagljs" path="res://src/ship/deck.gd" id="1_bsfh8"]
 [ext_resource type="Texture2D" uid="uid://cj5kttpgvoudp" path="res://assets/kenney_1-bit-pack/Tilesheet/colored-transparent.png" id="1_ypksv"]
+[ext_resource type="Script" uid="uid://ciji6ipnrxngl" path="res://src/ship/shake_camera.gd" id="3_2tvs3"]
 [ext_resource type="PackedScene" uid="uid://d0mwp5b4vd3in" path="res://src/stations/cannon.tscn" id="3_cannon"]
 [ext_resource type="PackedScene" uid="uid://cvocb8sueae36" path="res://src/stations/magazine.tscn" id="4_magazine"]
 [ext_resource type="PackedScene" uid="uid://y0qxfjjak0a2" path="res://src/stations/shot_locker.tscn" id="5_shotlocker"]
@@ -1129,6 +1130,7 @@ tile_set = SubResource("TileSet_cs86t")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2070235500]
 position = Vector2(256, 104)
+script = ExtResource("3_2tvs3")
 
 [node name="CannonPortFore" parent="." unique_id=1938274651 instance=ExtResource("3_cannon")]
 position = Vector2(72, 40)
@@ -1161,10 +1163,10 @@ hull = NodePath("../Hull")
 [node name="EnemyShip" parent="." unique_id=2029424963 instance=ExtResource("10_q8nfn")]
 position = Vector2(256, -50)
 
-[node name="Feed" parent="." instance=ExtResource("11_feed")]
+[node name="Feed" parent="." unique_id=1156835861 instance=ExtResource("11_feed")]
 
-[node name="Hud" parent="." node_paths=PackedStringArray("enemy", "fire") instance=ExtResource("12_hud")]
+[node name="Hud" parent="." unique_id=179560160 node_paths=PackedStringArray("enemy", "fire") instance=ExtResource("12_hud")]
 enemy = NodePath("../EnemyShip")
 fire = NodePath("../Fire")
 
-[node name="Scoreboard" parent="." instance=ExtResource("13_scoreboard")]
+[node name="Scoreboard" parent="." unique_id=570651127 instance=ExtResource("13_scoreboard")]
