@@ -21,6 +21,8 @@ const BULWARK_HEIGHT := 0.9
 const BULWARK_COLOR := Color(0.42, 0.27, 0.16)
 const BULWARK_PAINT := Color(0.6, 0.16, 0.12)   # inboard face
 const RAIL_COLOR := Color(0.3, 0.19, 0.11)
+const QUARTERDECK_HEIGHT := 0.45
+const BALUSTER_COLOR := Color(0.72, 0.53, 0.26)
 const WALL_COLOR := Color(0.36, 0.23, 0.14)
 const ROOM_COLORS := {
 	"magazine": Color(0.49, 0.29, 0.23),
@@ -61,6 +63,7 @@ var _world: Node3D
 var _outline: PackedVector2Array   # the hull's edge at deck level, (x, z) in metres
 var _plank_texture: ImageTexture
 var _gaps := PackedVector2Array()   # gun ports in the bulwark, (x, z) in metres
+var _quarterdeck_start := INF       # x in metres; everything aft of it is one step up
 var _wall_count := 0
 var _floor_count := 0
 var _mirrors := {}   # 2D node -> its 3D stand-in
@@ -81,6 +84,7 @@ func _ready() -> void:
 	_build_stage()
 	_build_hull()
 	_build_bulwark()
+	_build_quarterdeck()
 	_build_deck()
 	_sleep()
 
@@ -209,6 +213,9 @@ func hull_outline() -> PackedVector2Array:
 func bulwark_gaps() -> PackedVector2Array:
 	return _gaps
 
+func quarterdeck_start() -> float:
+	return _quarterdeck_start
+
 func wall_count() -> int:
 	return _wall_count
 
@@ -284,6 +291,47 @@ func _build_bulwark() -> void:
 	_world.add_child(_multimesh(unit, paint, [], BULWARK_PAINT))
 	_world.add_child(_multimesh(unit, rail, [], RAIL_COLOR))
 	_world.add_child(_multimesh(unit, sills, [], RAIL_COLOR))
+
+# The quarterdeck sits over the solid block of wall columns at the stern, one step up, with a
+# balustrade along its front. Only wall tiles are under it, so in 2D nobody stands on it.
+func _build_quarterdeck() -> void:
+	var used := hull.get_used_rect()
+	var column := used.end.x
+	while column > used.position.x and _is_solid_column(column - 1):
+		column -= 1
+	if column == used.end.x:
+		return
+	var half := Vector2(hull.tile_set.tile_size) / 2.0
+	_quarterdeck_start = to_3d(hull.to_global(hull.map_to_local(Vector2i(column, used.position.y)) - half)).x
+	var r := _deck_rect()
+	var aft := Rect2(_quarterdeck_start, r.position.y - 5.0, r.end.x + 5.0 - _quarterdeck_start, r.size.y + 10.0)
+	var sides := StandardMaterial3D.new()
+	sides.albedo_color = BULWARK_COLOR
+	for shape in Geometry2D.intersect_polygons(_outline, PackedVector2Array([aft.position,
+			Vector2(aft.end.x, aft.position.y), aft.end, Vector2(aft.position.x, aft.end.y)])):
+		_world.add_child(_slab(shape, -0.02, QUARTERDECK_HEIGHT, sides, _plank_material(FLOOR_COLOR)))
+	var x := _quarterdeck_start + 0.1
+	var posts: Array[Transform3D] = []
+	var z := r.position.y
+	while z < r.end.y:
+		posts.append(Transform3D(Basis(), Vector3(x, QUARTERDECK_HEIGHT + 0.25, z)))
+		z += 0.36
+	var post := CylinderMesh.new()
+	post.top_radius = 0.035
+	post.bottom_radius = 0.05
+	post.height = 0.5
+	_world.add_child(_multimesh(post, posts, [], BALUSTER_COLOR))
+	var cap := BoxMesh.new()
+	cap.size = Vector3(0.14, 0.07, r.size.y)
+	_world.add_child(_mesh(cap, Vector3(x, QUARTERDECK_HEIGHT + 0.53, r.get_center().y), RAIL_COLOR))
+
+func _is_solid_column(column: int) -> bool:
+	var used := hull.get_used_rect()
+	for row in range(used.position.y, used.end.y):
+		var data := hull.get_cell_tile_data(Vector2i(column, row))
+		if data == null or data.get_collision_polygons_count(0) == 0:
+			return false
+	return true
 
 # The used tiles' bounding box on the deck, (x, z) in metres.
 func _deck_rect() -> Rect2:
@@ -365,6 +413,8 @@ func _build_deck() -> void:
 		var data := hull.get_cell_tile_data(cell)
 		var at := to_3d(hull.to_global(hull.map_to_local(cell)))
 		if data.get_collision_polygons_count(0) > 0:
+			if at.x >= _quarterdeck_start:
+				continue   # under the quarterdeck
 			walls.append(Transform3D(Basis(), at + Vector3(0, WALL_HEIGHT / 2.0, 0)))
 		else:
 			floors.append(Transform3D(Basis(), at))
