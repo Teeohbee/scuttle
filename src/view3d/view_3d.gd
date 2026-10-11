@@ -156,7 +156,7 @@ func _build_stage() -> void:
 	_world.add_child(_camera)
 	var sun := DirectionalLight3D.new()
 	sun.rotation = Vector3(deg_to_rad(-55), deg_to_rad(-30), 0)
-	sun.light_energy = 1.1
+	sun.light_energy = 0.9
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 300.0
 	_world.add_child(sun)
@@ -165,7 +165,7 @@ func _build_stage() -> void:
 	env.background_color = Color(0.1, 0.25, 0.36)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.55, 0.62, 0.75)
-	env.ambient_light_energy = 0.6
+	env.ambient_light_energy = 0.3
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
@@ -237,6 +237,7 @@ func _multimesh(mesh: Mesh, at: Array[Transform3D], colors: Array[Color], tint: 
 	var material := StandardMaterial3D.new()
 	material.albedo_color = tint
 	material.vertex_color_use_as_albedo = mm.use_colors
+	material.vertex_color_is_srgb = true   # instance colours are written as sRGB, like albedo
 	var node := MultiMeshInstance3D.new()
 	node.multimesh = mm
 	node.material_override = material
