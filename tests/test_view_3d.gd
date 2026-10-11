@@ -93,3 +93,11 @@ func test_flat_camera_lines_up_with_the_2d_camera() -> void:
 	var px_3d := cam_3d.unproject_position(view.to_3d(corner))
 	check_near(px_3d.x, px_2d.x, 1.5, "corner x")
 	check_near(px_3d.y, px_2d.y, 1.5, "corner y")
+
+func test_hud_draws_over_the_3d() -> void:
+	var deck := load_deck()
+	await frames(1)
+	var view := _view(deck)
+	for node in deck.find_children("*", "CanvasLayer", false, false):
+		if node != view:
+			check(node.layer > view.layer, "%s (layer %d) is above the 3D (layer %d)" % [node.name, node.layer, view.layer])
