@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://src/ui/feed.gd" id="1_feed"]
 
 [node name="Feed" type="CanvasLayer"]
+layer = 2
 script = ExtResource("1_feed")
 
 [node name="Lines" type="VBoxContainer" parent="."]

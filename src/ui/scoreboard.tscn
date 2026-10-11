@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://src/ui/scoreboard.gd" id="1_scoreboard"]
 
 [node name="Scoreboard" type="CanvasLayer"]
+layer = 2
 script = ExtResource("1_scoreboard")
 
 [node name="Overlay" type="Control" parent="."]
