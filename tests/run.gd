@@ -15,6 +15,10 @@ func _initialize() -> void:
 	files.sort()
 	for file in files:
 		var script: GDScript = load("res://tests/" + file)
+		if script == null or not script.can_instantiate():
+			failures += 1
+			printerr("FAIL %s - didn't load (parse error?)" % file)
+			continue
 		for method in script.get_script_method_list():
 			if not method.name.begins_with("test_"):
 				continue
