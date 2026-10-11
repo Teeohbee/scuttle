@@ -17,6 +17,10 @@ const WALL_HEIGHT := 1.0
 const FLOOR_COLOR := Color(0.48, 0.34, 0.22)
 const HULL_COLOR := Color(0.29, 0.17, 0.11)
 const HULL_DEPTH := 2.2
+const BULWARK_HEIGHT := 0.9
+const BULWARK_COLOR := Color(0.42, 0.27, 0.16)
+const BULWARK_PAINT := Color(0.6, 0.16, 0.12)   # inboard face
+const RAIL_COLOR := Color(0.3, 0.19, 0.11)
 const WALL_COLOR := Color(0.36, 0.23, 0.14)
 const ROOM_COLORS := {
 	"magazine": Color(0.49, 0.29, 0.23),
@@ -56,6 +60,7 @@ var _camera: Camera3D
 var _world: Node3D
 var _outline: PackedVector2Array   # the hull's edge at deck level, (x, z) in metres
 var _plank_texture: ImageTexture
+var _gaps := PackedVector2Array()   # gun ports in the bulwark, (x, z) in metres
 var _wall_count := 0
 var _floor_count := 0
 var _mirrors := {}   # 2D node -> its 3D stand-in
@@ -75,6 +80,7 @@ func _ready() -> void:
 	_viewport.add_child(_world)
 	_build_stage()
 	_build_hull()
+	_build_bulwark()
 	_build_deck()
 	_sleep()
 
@@ -200,6 +206,9 @@ func has_flame_at(point: Vector3) -> bool:
 func hull_outline() -> PackedVector2Array:
 	return _outline
 
+func bulwark_gaps() -> PackedVector2Array:
+	return _gaps
+
 func wall_count() -> int:
 	return _wall_count
 
@@ -230,6 +239,51 @@ func _build_hull() -> void:
 	var sides := StandardMaterial3D.new()
 	sides.albedo_color = HULL_COLOR
 	_world.add_child(_slab(_outline, -HULL_DEPTH, -0.02, sides, deck))
+
+# A waist-high rail round the hull's edge, painted red inboard, with a port cut for each gun.
+# It's built from short pieces so the bow curves and a port is a missing piece.
+func _build_bulwark() -> void:
+	var r := _deck_rect()
+	var mid := r.get_center().y
+	var guns: Array[Vector2] = []
+	for s in get_tree().get_nodes_in_group("stations"):
+		if "phase" in s:
+			var at := to_3d(s.global_position)
+			guns.append(Vector2(at.x, at.z))
+	var centre := r.get_center()
+	var body: Array[Transform3D] = []
+	var paint: Array[Transform3D] = []
+	var rail: Array[Transform3D] = []
+	var sills: Array[Transform3D] = []
+	for i in _outline.size():
+		var a := _outline[i]
+		var b := _outline[(i + 1) % _outline.size()]
+		var pieces := ceili(a.distance_to(b) / 0.5)
+		for k in pieces:
+			var p := a.lerp(b, float(k) / pieces)
+			var q := a.lerp(b, float(k + 1) / pieces)
+			var m := (p + q) / 2.0
+			var inboard := Vector2(q.y - p.y, p.x - q.x).normalized()
+			if inboard.dot(centre - m) < 0.0:
+				inboard = -inboard
+			var along := Basis(Vector3.UP, atan2(p.y - q.y, q.x - p.x))
+			var length := p.distance_to(q) + 0.02
+			var at := func(offset: float, y: float) -> Vector3:
+				var c := m + inboard * offset
+				return Vector3(c.x, y, c.y)
+			var on_straight := absf(m.y - mid) > r.size.y / 2.0
+			if on_straight and guns.any(func(g): return signf(g.y - mid) == signf(m.y - mid) and absf(g.x - m.x) < 0.5):
+				_gaps.append(m)
+				sills.append(Transform3D(along * Basis.from_scale(Vector3(length, 0.2, 0.24)), at.call(0.1, 0.1)))
+				continue
+			body.append(Transform3D(along * Basis.from_scale(Vector3(length, BULWARK_HEIGHT, 0.2)), at.call(0.1, BULWARK_HEIGHT / 2.0)))
+			paint.append(Transform3D(along * Basis.from_scale(Vector3(length, BULWARK_HEIGHT - 0.12, 0.02)), at.call(0.21, BULWARK_HEIGHT / 2.0 - 0.02)))
+			rail.append(Transform3D(along * Basis.from_scale(Vector3(length + 0.02, 0.07, 0.3)), at.call(0.1, BULWARK_HEIGHT + 0.035)))
+	var unit := BoxMesh.new()
+	_world.add_child(_multimesh(unit, body, [], BULWARK_COLOR))
+	_world.add_child(_multimesh(unit, paint, [], BULWARK_PAINT))
+	_world.add_child(_multimesh(unit, rail, [], RAIL_COLOR))
+	_world.add_child(_multimesh(unit, sills, [], RAIL_COLOR))
 
 # The used tiles' bounding box on the deck, (x, z) in metres.
 func _deck_rect() -> Rect2:

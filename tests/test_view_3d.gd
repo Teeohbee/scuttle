@@ -33,6 +33,27 @@ func test_hull_outline_encloses_every_tile() -> void:
 				check(false, "cell %s sticks out of the hull" % cell)
 				return
 
+func test_bulwark_has_a_gap_at_each_gun_and_nowhere_else() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	var middle := 0.0
+	for p in view.hull_outline():
+		middle += p.y / view.hull_outline().size()
+	var guns: Array[Vector2] = []
+	for s in tree.get_nodes_in_group("stations"):
+		if "phase" in s:
+			var at := view.to_3d(s.global_position)
+			guns.append(Vector2(at.x, at.z))
+	check_eq(guns.size(), 3, "guns")
+	var gaps := view.bulwark_gaps()
+	var on_same_side := func(a: Vector2, b: Vector2) -> bool:
+		return signf(a.y - middle) == signf(b.y - middle) and absf(a.x - b.x) < 0.6
+	for gun in guns:
+		check(Array(gaps).any(func(g): return on_same_side.call(g, gun)), "a gap at the gun at %s" % gun)
+	for gap in gaps:
+		check(guns.any(func(g): return on_same_side.call(gap, g)), "the gap at %s has a gun" % gap)
+
 func test_crew_mirrors_follow_the_crew() -> void:
 	var deck := load_deck(3)
 	_view(deck).set_3d(true, false)
