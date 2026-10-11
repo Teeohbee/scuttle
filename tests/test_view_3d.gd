@@ -101,3 +101,12 @@ func test_hud_draws_over_the_3d() -> void:
 	for node in deck.find_children("*", "CanvasLayer", false, false):
 		if node != view:
 			check(node.layer > view.layer, "%s (layer %d) is above the 3D (layer %d)" % [node.name, node.layer, view.layer])
+
+func test_cannon_lamp_shows_its_phase() -> void:
+	var deck := load_deck()
+	_view(deck).set_3d(true, false)
+	await frames(2)
+	var cannon := deck.get_node("CannonPortFore")
+	cannon.phase = cannon.Phase.RUN_OUT
+	await frames(2)
+	check_eq(_view(deck).lamp_color(cannon), cannon.PHASE_COLORS[cannon.Phase.RUN_OUT], "lamp colour")

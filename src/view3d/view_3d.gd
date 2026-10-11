@@ -182,6 +182,10 @@ func _build_stage() -> void:
 func mirror_of(node: Node) -> Node3D:
 	return _mirrors.get(node)
 
+func lamp_color(station: Node) -> Color:
+	var lamp: MeshInstance3D = _mirrors[station].get_node_or_null("Lamp")
+	return lamp.material_override.albedo_color if lamp else Color.BLACK
+
 func flame_count() -> int:
 	return _flames.filter(func(f): return f.visible).size()
 
@@ -249,7 +253,11 @@ func _sync() -> void:
 		_place(c, func(): return _crew_mirror(c.accent))
 	for s in get_tree().get_nodes_in_group("stations"):
 		if s is Station:
-			_place(s, func(): return _box(Vector3(0.8, 0.6, 0.8), _station_color(s)))
+			var m := _place(s, func(): return _station_mirror(s))
+			if "phase" in s:   # cannons: the lamp is how players read what a gun needs next
+				var lamp: StandardMaterial3D = m.get_node("Lamp").material_override
+				lamp.albedo_color = s.PHASE_COLORS[s.phase]
+				lamp.emission = lamp.albedo_color
 	for item in get_tree().get_nodes_in_group("carryables"):
 		var m := _place(item, func(): return _box(Vector3(0.3, 0.3, 0.3), Color.WHITE))
 		m.position.y = 1.3 if item.held else 0.0
@@ -293,6 +301,18 @@ func _sync_flames() -> void:
 
 func _station_color(station: Node) -> Color:
 	return STATION_COLORS.get(station.scene_file_path.get_file().get_basename(), Color.GRAY)
+
+func _station_mirror(station: Node) -> Node3D:
+	var root := _box(Vector3(0.8, 0.6, 0.8), _station_color(station))
+	if "phase" in station:
+		var cube := BoxMesh.new()
+		cube.size = Vector3(0.3, 0.12, 0.3)
+		var lamp := _mesh(cube, Vector3(0, 0.66, 0), Color.GRAY)
+		lamp.name = "Lamp"
+		lamp.material_override.emission_enabled = true
+		lamp.material_override.emission_energy_multiplier = 1.5
+		root.add_child(lamp)
+	return root
 
 func _crew_mirror(accent: Color) -> Node3D:
 	var root := Node3D.new()
