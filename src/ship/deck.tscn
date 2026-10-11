@@ -1172,8 +1172,9 @@ fire = NodePath("../Fire")
 
 [node name="Scoreboard" parent="." unique_id=570651127 instance=ExtResource("13_scoreboard")]
 
-[node name="View3D" type="CanvasLayer" parent="." node_paths=PackedStringArray("hull", "fire", "enemy")]
+[node name="View3D" type="CanvasLayer" parent="." node_paths=PackedStringArray("hull", "fire", "enemy", "camera_2d")]
 script = ExtResource("14_view3d")
+camera_2d = NodePath("../Camera2D")
 hull = NodePath("../Hull")
 fire = NodePath("../Fire")
 enemy = NodePath("../EnemyShip")

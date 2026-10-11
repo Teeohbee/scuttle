@@ -2,8 +2,17 @@ class_name View3D
 extends CanvasLayer
 # Draws the deck in 3D, over the top of the 2D art. It only ever reads 2D state.
 # 1 tile = 16 px = 1 m, so a 2D point (x, y) sits at (x / 16, 0, y / 16).
+#
+# The switch (toggle_view): crossfade with the camera looking straight down through a narrow
+# lens from far away, which lines up with the 2D tile for tile, then tilt and widen to the game
+# angle. In 2D the 3D isn't drawn and doesn't process.
 
 const PX_PER_M := 16.0
+const SWITCH_TIME := 1.2
+const FADE_SHARE := 0.3          # first 30% of the switch is the crossfade
+const FLAT_FOV := 10.0           # horizontal, degrees: narrow enough to look flat
+const GAME_FOV := 50.0
+const GAME_TILT := deg_to_rad(31.0)
 const WALL_HEIGHT := 1.0
 const FLOOR_COLOR := Color(0.48, 0.34, 0.22)
 const WALL_COLOR := Color(0.36, 0.23, 0.14)
@@ -34,7 +43,14 @@ const ITEM_COLORS := {
 @export var hull: TileMapLayer
 @export var fire: FireHazard
 @export var enemy: Node2D
+@export var camera_2d: Camera2D
 
+var is_3d := false
+var _blend := 0.0                # 0 = 2D, 1 = 3D at the game angle
+var _tween: Tween
+var _container: SubViewportContainer
+var _viewport: SubViewport
+var _camera: Camera3D
 var _world: Node3D
 var _wall_count := 0
 var _floor_count := 0
@@ -42,12 +58,126 @@ var _mirrors := {}   # 2D node -> its 3D stand-in
 var _flames: Array[MeshInstance3D] = []
 
 func _ready() -> void:
+	_container = SubViewportContainer.new()
+	_container.stretch = true
+	_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_container)
+	_viewport = SubViewport.new()
+	_viewport.own_world_3d = true
+	_viewport.msaa_3d = Viewport.MSAA_4X
+	_container.add_child(_viewport)
 	_world = Node3D.new()
-	add_child(_world)
+	_viewport.add_child(_world)
+	_build_stage()
 	_build_deck()
+	_sleep()
 
 func _process(_delta: float) -> void:
 	_sync()
+	pose(_blend)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_view"):
+		toggle()
+
+func toggle() -> void:
+	set_3d(not is_3d)
+
+func set_3d(on: bool, animate := true) -> void:
+	is_3d = on
+	if _tween:
+		_tween.kill()
+	if on:
+		_wake()
+	var goal := 1.0 if on else 0.0
+	if not animate:
+		_apply(goal)
+		if not on:
+			_sleep()
+		return
+	_tween = create_tween()
+	_tween.tween_method(_apply, _blend, goal, SWITCH_TIME * absf(goal - _blend))
+	if not on:
+		_tween.tween_callback(_sleep)
+
+func blend() -> float:
+	return _blend
+
+func camera() -> Camera3D:
+	return _camera
+
+func camera_tilt() -> float:
+	return Vector3.UP.angle_to(_camera.position - _target())
+
+func is_drawing() -> bool:
+	return _container.visible and _viewport.render_target_update_mode != SubViewport.UPDATE_DISABLED
+
+# Place the camera for a point in the switch. The narrow lens is pulled back so the deck
+# always spans the same width as the 2D view (a dolly zoom).
+func pose(b: float) -> void:
+	var e := _smooth((b - FADE_SHARE) / (1.0 - FADE_SHARE))
+	var fov := lerpf(FLAT_FOV, GAME_FOV, e)
+	var tilt := lerpf(0.0, GAME_TILT, e)
+	var half_width := get_viewport().get_visible_rect().size.x / 2.0 / PX_PER_M / camera_2d.zoom.x
+	var distance := half_width / tan(deg_to_rad(fov) / 2.0)
+	_camera.fov = fov
+	_camera.near = maxf(0.05, distance - 30.0)
+	_camera.far = distance + 150.0
+	_camera.position = _target() + Vector3(0, distance * cos(tilt), distance * sin(tilt))
+	_camera.look_at(_target(), Vector3.FORWARD)
+
+func _apply(b: float) -> void:
+	_blend = b
+	_container.modulate.a = _smooth(b / FADE_SHARE)
+	pose(b)
+
+func _wake() -> void:
+	_container.visible = true
+	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	set_process(true)
+	_sync()
+
+func _sleep() -> void:
+	_container.visible = false
+	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	set_process(false)
+
+func _target() -> Vector3:
+	return to_3d(camera_2d.get_screen_center_position())
+
+func _smooth(x: float) -> float:
+	return smoothstep(0.0, 1.0, x)
+
+# Camera, sun, sky colour, the sea and a block of hull under the deck.
+func _build_stage() -> void:
+	_camera = Camera3D.new()
+	_camera.keep_aspect = Camera3D.KEEP_WIDTH
+	_world.add_child(_camera)
+	var sun := DirectionalLight3D.new()
+	sun.rotation = Vector3(deg_to_rad(-55), deg_to_rad(-30), 0)
+	sun.light_energy = 1.1
+	sun.shadow_enabled = true
+	sun.directional_shadow_max_distance = 300.0
+	_world.add_child(sun)
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.1, 0.25, 0.36)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.55, 0.62, 0.75)
+	env.ambient_light_energy = 0.6
+	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	var world_env := WorldEnvironment.new()
+	world_env.environment = env
+	_world.add_child(world_env)
+	var sea := PlaneMesh.new()
+	sea.size = Vector2(400, 400)
+	_world.add_child(_mesh(sea, Vector3(0, -0.8, 0), Color(0.12, 0.33, 0.48)))
+	var used := hull.get_used_rect()
+	var block := BoxMesh.new()
+	block.size = Vector3(used.size.x + 0.8, 1.6, used.size.y + 0.8)
+	var middle := to_3d(hull.to_global(hull.map_to_local(used.position) + Vector2(used.size - Vector2i.ONE) * PX_PER_M / 2.0))
+	_world.add_child(_mesh(block, middle + Vector3(0, -0.82, 0), Color(0.29, 0.17, 0.11)))
 
 func mirror_of(node: Node) -> Node3D:
 	return _mirrors.get(node)
