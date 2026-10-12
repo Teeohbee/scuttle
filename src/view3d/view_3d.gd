@@ -8,6 +8,7 @@ extends CanvasLayer
 # angle. In 2D the 3D isn't drawn and doesn't process.
 
 const PX_PER_M := 16.0
+const HELD_HEIGHT := 1.65   # carried items ride above the monkey's hat
 const SWITCH_TIME := 1.2
 const FADE_SHARE := 0.3          # first 30% of the switch is the crossfade
 const FLAT_FOV := 10.0           # horizontal, degrees: narrow enough to look flat
@@ -573,7 +574,8 @@ func _sync() -> void:
 			_mirrors[node].queue_free()
 			_mirrors.erase(node)
 	for c in get_tree().get_nodes_in_group("crew"):
-		_place(c, func(): return _crew_mirror(c.accent))
+		var monkey: Monkey = _place(c, func(): return Monkey.new(c.accent, _mirrors.size()))
+		monkey.animate(get_process_delta_time(), c.held_item != null)
 	for s in get_tree().get_nodes_in_group("stations"):
 		if s is Station:
 			var m := _place(s, func(): return _station_mirror(s))
@@ -583,7 +585,7 @@ func _sync() -> void:
 				lamp.emission = lamp.albedo_color
 	for item in get_tree().get_nodes_in_group("carryables"):
 		var m := _place(item, func(): return _box(Vector3(0.3, 0.3, 0.3), Color.WHITE))
-		m.position.y = 1.3 if item.held else 0.0
+		m.position.y = HELD_HEIGHT if item.held else 0.0
 		(m.get_child(0) as MeshInstance3D).material_override.albedo_color = ITEM_COLORS.get(item.kind, Color.WHITE)
 	if enemy:
 		_place(enemy, func(): return _box(Vector3(16, 1.6, 4), Color(0.17, 0.1, 0.07)))
@@ -635,14 +637,6 @@ func _station_mirror(station: Node) -> Node3D:
 		lamp.material_override.emission_enabled = true
 		lamp.material_override.emission_energy_multiplier = 1.5
 		root.add_child(lamp)
-	return root
-
-func _crew_mirror(accent: Color) -> Node3D:
-	var root := Node3D.new()
-	var body := CapsuleMesh.new()
-	body.radius = 0.28
-	body.height = 0.9
-	root.add_child(_mesh(body, Vector3(0, 0.45, 0), accent))
 	return root
 
 func _box(size: Vector3, color: Color) -> Node3D:
