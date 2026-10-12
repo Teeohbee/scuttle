@@ -56,14 +56,6 @@ const ROOM_COLORS := {
 	"lumberStore": Color(0.54, 0.45, 0.27),
 }
 
-const ITEM_COLORS := {
-	Carryable.Kind.POWDER: Color(0.45, 0.2, 0.15),
-	Carryable.Kind.SHOT: Color(0.15, 0.15, 0.17),
-	Carryable.Kind.PLANK: Color(0.72, 0.54, 0.31),
-	Carryable.Kind.BUCKET_WATER: Color(0.35, 0.65, 0.88),
-	Carryable.Kind.BUCKET_EMPTY: Color(0.5, 0.4, 0.3),
-}
-
 @export var hull: TileMapLayer
 @export var fire: FireHazard
 @export var enemy: EnemyShip
@@ -786,9 +778,9 @@ func _sync() -> void:
 			elif s is Pump:
 				m.work_pump(s.manned, get_process_delta_time())
 	for item in get_tree().get_nodes_in_group("carryables"):
-		var m := _place(item, func(): return _box(Vector3(0.3, 0.3, 0.3), Color.WHITE))
+		var m: ItemModel = _place(item, func(): return ItemModel.new())
 		m.position.y = HELD_HEIGHT if item.held else 0.0
-		(m.get_child(0) as MeshInstance3D).material_override.albedo_color = ITEM_COLORS.get(item.kind, Color.WHITE)
+		m.show_kind(item.kind)
 	if enemy:
 		var foe: EnemyModel = _place(enemy, func(): return _enemy_mirror(), _world)
 		foe.position.z -= ENEMY_STANDOFF
@@ -854,13 +846,6 @@ func _station_mirror(station: Node) -> StationModel:
 	if to_3d(station.global_position).z < deck_rect().get_center().y:
 		model.rotation.y = PI
 	return model
-
-func _box(size: Vector3, color: Color) -> Node3D:
-	var root := Node3D.new()
-	var box := BoxMesh.new()
-	box.size = size
-	root.add_child(_mesh(box, Vector3(0, size.y / 2.0, 0), color))
-	return root
 
 func _mesh(mesh: Mesh, at: Vector3, color: Color) -> MeshInstance3D:
 	var m := MeshInstance3D.new()
