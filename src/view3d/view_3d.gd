@@ -13,7 +13,6 @@ const FADE_SHARE := 0.3          # first 30% of the switch is the crossfade
 const FLAT_FOV := 10.0           # horizontal, degrees: narrow enough to look flat
 const GAME_FOV := 50.0
 const GAME_TILT := deg_to_rad(31.0)
-const WALL_HEIGHT := 1.0
 const FLOOR_COLOR := Color(0.48, 0.34, 0.22)
 const HULL_COLOR := Color(0.29, 0.17, 0.11)
 const HULL_DEPTH := 2.2
@@ -23,7 +22,6 @@ const BULWARK_PAINT := Color(0.6, 0.16, 0.12)   # inboard face
 const RAIL_COLOR := Color(0.3, 0.19, 0.11)
 const QUARTERDECK_HEIGHT := 0.45
 const BALUSTER_COLOR := Color(0.72, 0.53, 0.26)
-const WALL_COLOR := Color(0.36, 0.23, 0.14)
 const ROOM_COLORS := {
 	"magazine": Color(0.49, 0.29, 0.23),
 	"shotLocker": Color(0.44, 0.42, 0.40),
@@ -64,7 +62,8 @@ var _outline: PackedVector2Array   # the hull's edge at deck level, (x, z) in me
 var _plank_texture: ImageTexture
 var _gaps := PackedVector2Array()   # gun ports in the bulwark, (x, z) in metres
 var _quarterdeck_start := INF       # x in metres; everything aft of it is one step up
-var _wall_count := 0
+var _quarterdeck_column := 0
+var _dresser: DeckDresser
 var _floor_count := 0
 var _mirrors := {}   # 2D node -> its 3D stand-in
 var _flames: Array[MeshInstance3D] = []
@@ -216,8 +215,8 @@ func bulwark_gaps() -> PackedVector2Array:
 func quarterdeck_start() -> float:
 	return _quarterdeck_start
 
-func wall_count() -> int:
-	return _wall_count
+func dresser() -> DeckDresser:
+	return _dresser
 
 func floor_count() -> int:
 	return _floor_count
@@ -299,6 +298,7 @@ func _build_quarterdeck() -> void:
 	var column := used.end.x
 	while column > used.position.x and _is_solid_column(column - 1):
 		column -= 1
+	_quarterdeck_column = column
 	if column == used.end.x:
 		return
 	var half := Vector2(hull.tile_set.tile_size) / 2.0
@@ -403,25 +403,17 @@ func _planks() -> ImageTexture:
 	_plank_texture = ImageTexture.create_from_image(img)
 	return _plank_texture
 
-# One MultiMesh for the walls and one for the floor, built once from the Hull tiles:
-# a tile with collision is a wall, and the rest are floor tinted by their room.
+# The floor tiles, tinted by their room, in one MultiMesh. There are no walls: the dresser turns
+# each wall tile into cargo, a divider or a bitt.
 func _build_deck() -> void:
-	var walls: Array[Transform3D] = []
 	var floors: Array[Transform3D] = []
 	var floor_colors: Array[Color] = []
 	for cell in hull.get_used_cells():
 		var data := hull.get_cell_tile_data(cell)
 		var at := to_3d(hull.to_global(hull.map_to_local(cell)))
-		if data.get_collision_polygons_count(0) > 0:
-			if at.x >= _quarterdeck_start:
-				continue   # under the quarterdeck
-			walls.append(Transform3D(Basis(), at + Vector3(0, WALL_HEIGHT / 2.0, 0)))
-		else:
+		if data.get_collision_polygons_count(0) == 0:
 			floors.append(Transform3D(Basis(), at))
 			floor_colors.append(ROOM_COLORS.get(data.get_custom_data("room"), FLOOR_COLOR))
-	var wall_box := BoxMesh.new()
-	wall_box.size = Vector3(1, WALL_HEIGHT, 1)
-	_world.add_child(_multimesh(wall_box, walls, [], WALL_COLOR))
 	var tile := PlaneMesh.new()
 	tile.size = Vector2(1, 1)
 	var floor := _multimesh(tile, floors, floor_colors, Color.WHITE)
@@ -429,7 +421,10 @@ func _build_deck() -> void:
 	floor.material_override.vertex_color_use_as_albedo = true
 	floor.material_override.vertex_color_is_srgb = true
 	_world.add_child(floor)
-	_wall_count = walls.size()
+	_dresser = DeckDresser.new(hull, _quarterdeck_column, func(cell): return to_3d(hull.to_global(hull.map_to_local(cell))))
+	var dressing := MeshInstance3D.new()
+	dressing.mesh = _dresser.mesh()
+	_world.add_child(dressing)
 	_floor_count = floors.size()
 
 func _multimesh(mesh: Mesh, at: Array[Transform3D], colors: Array[Color], tint: Color) -> MultiMeshInstance3D:
