@@ -50,7 +50,7 @@ func test_it_holds_still_while_lined_up_with_the_2d() -> void:
 	assert_that(_foe(deck).roll()).is_equal(Vector3.ZERO)
 	var sprite := view.to_3d(deck.get_node("EnemyShip").global_position)
 	assert_float(_foe(deck).position.x).is_equal(sprite.x)
-	assert_float(_foe(deck).position.z).is_equal(sprite.z)
+	assert_float(_foe(deck).position.z).is_equal(sprite.z - View3D.ENEMY_STANDOFF)
 
 func test_its_broadside_flashes_when_it_fires_and_dies_away() -> void:
 	var deck: Node2D = await _in_3d()

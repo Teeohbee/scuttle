@@ -12,6 +12,7 @@ const ROLL := 0.012   # radians, side to side; pitch is 70% of it
 const HEAVE := 0.08   # metres
 const RENDER_SCALE := 1.0   # the 3D's resolution as a share of the window's: lower is chunkier and cheaper
 const HELD_HEIGHT := 1.65   # carried items ride above the monkey's hat
+const ENEMY_STANDOFF := 1.0   # metres of sea between the enemy and its 2D spot, so its broadside clears our rail
 const SWITCH_TIME := 1.2
 const FADE_SHARE := 0.3          # first 30% of the switch is the crossfade
 const FLAT_FOV := 10.0           # horizontal, degrees: narrow enough to look flat
@@ -718,11 +719,12 @@ func _sync() -> void:
 		(m.get_child(0) as MeshInstance3D).material_override.albedo_color = ITEM_COLORS.get(item.kind, Color.WHITE)
 	if enemy:
 		var foe: EnemyModel = _place(enemy, func(): return _enemy_mirror(), _world)
+		foe.position.z -= ENEMY_STANDOFF
 		foe.show_hull(enemy.hull_hp / enemy.max_hull_hp)
 	_sync_flames()
 
 func _enemy_mirror() -> EnemyModel:
-	var foe := EnemyModel.new()
+	var foe := EnemyModel.new(_plank_material(FLOOR_COLOR))
 	enemy.fired.connect(foe.fire)
 	return foe
 
