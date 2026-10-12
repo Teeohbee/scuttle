@@ -1,57 +1,53 @@
-extends Check
+extends DeckSuite
 # The 3D view draws the deck from 2D state. It must match the 2D, follow it, and stay out of the way.
 
 func _view(deck: Node2D) -> View3D:
 	return deck.get_node("View3D")
 
-func _wall_cells(hull: TileMapLayer) -> int:
-	var n := 0
-	for cell in hull.get_used_cells():
-		if hull.get_cell_tile_data(cell).get_collision_polygons_count(0) > 0:
-			n += 1
-	return n
+func _is_wall(hull: TileMapLayer, cell: Vector2i) -> bool:
+	return hull.get_cell_tile_data(cell).get_collision_polygons_count(0) > 0
 
 func test_walls_match_the_collision_tiles() -> void:
 	var deck := load_deck()
 	await frames(2)
 	var hull: TileMapLayer = deck.get_node("Hull")
 	var view := _view(deck)
-	var forward := 0   # wall tiles drawn as walls, not hidden under the quarterdeck
-	for cell in hull.get_used_cells():
-		if hull.get_cell_tile_data(cell).get_collision_polygons_count(0) > 0 \
-				and view.to_3d(hull.to_global(hull.map_to_local(cell))).x < view.quarterdeck_start():
-			forward += 1
-	check(forward > 0, "the hull has walls")
-	check_eq(view.wall_count(), forward, "3D walls")
-	check_eq(view.floor_count(), hull.get_used_cells().size() - _wall_cells(hull), "3D floor tiles")
+	var walls := hull.get_used_cells().filter(func(c): return _is_wall(hull, c))
+	# wall tiles drawn as walls, not hidden under the quarterdeck
+	var forward := walls.filter(func(c): return view.to_3d(hull.to_global(hull.map_to_local(c))).x < view.quarterdeck_start())
+	assert_array(forward).is_not_empty()
+	assert_int(view.wall_count()).is_equal(forward.size())
+	assert_int(view.floor_count()).is_equal(hull.get_used_cells().size() - walls.size())
 
 func test_quarterdeck_only_covers_wall_tiles() -> void:
 	var deck := load_deck()
 	await frames(2)
 	var hull: TileMapLayer = deck.get_node("Hull")
 	var view := _view(deck)
-	var used := hull.get_used_rect()
-	var stern := view.to_3d(hull.to_global(hull.map_to_local(used.end - Vector2i.ONE))).x
-	check(view.quarterdeck_start() < stern, "there's a quarterdeck")
+	var stern := view.to_3d(hull.to_global(hull.map_to_local(hull.get_used_rect().end - Vector2i.ONE))).x
+	assert_float(view.quarterdeck_start()).is_less(stern)
 	var half := hull.tile_set.tile_size.x / 2.0
 	for cell in hull.get_used_cells():
-		if hull.get_cell_tile_data(cell).get_collision_polygons_count(0) == 0:
+		if not _is_wall(hull, cell):
 			var aft_edge := view.to_3d(hull.to_global(hull.map_to_local(cell) + Vector2(half, 0))).x
-			check(aft_edge <= view.quarterdeck_start() + 0.001, "floor cell %s is under the quarterdeck" % cell)
+			assert_float(aft_edge).override_failure_message("floor cell %s is under the quarterdeck" % cell) \
+				.is_less_equal(view.quarterdeck_start() + 0.001)
 
 func test_hull_outline_encloses_every_tile() -> void:
 	var deck := load_deck()
 	await frames(2)
 	var hull: TileMapLayer = deck.get_node("Hull")
-	var outline := _view(deck).hull_outline()
-	check(outline.size() > 8, "the hull has an outline")
+	var view := _view(deck)
+	var outline := view.hull_outline()
+	assert_int(outline.size()).is_greater(8)
 	var half := Vector2(hull.tile_set.tile_size) / 2.0
+	var outside := []
 	for cell in hull.get_used_cells():
 		for corner in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
-			var at := _view(deck).to_3d(hull.to_global(hull.map_to_local(cell) + corner * half))
+			var at := view.to_3d(hull.to_global(hull.map_to_local(cell) + corner * half))
 			if not Geometry2D.is_point_in_polygon(Vector2(at.x, at.z), outline):
-				check(false, "cell %s sticks out of the hull" % cell)
-				return
+				outside.append(cell)
+	assert_array(outside).override_failure_message("cells stick out of the hull: %s" % [outside]).is_empty()
 
 func test_bulwark_has_a_gap_at_each_gun_and_nowhere_else() -> void:
 	var deck := load_deck()
@@ -61,77 +57,79 @@ func test_bulwark_has_a_gap_at_each_gun_and_nowhere_else() -> void:
 	for p in view.hull_outline():
 		middle += p.y / view.hull_outline().size()
 	var guns: Array[Vector2] = []
-	for s in tree.get_nodes_in_group("stations"):
+	for s in get_tree().get_nodes_in_group("stations"):
 		if "phase" in s:
 			var at := view.to_3d(s.global_position)
 			guns.append(Vector2(at.x, at.z))
-	check_eq(guns.size(), 3, "guns")
-	var gaps := view.bulwark_gaps()
+	assert_array(guns).has_size(3)
+	var gaps := Array(view.bulwark_gaps())
 	var on_same_side := func(a: Vector2, b: Vector2) -> bool:
 		return signf(a.y - middle) == signf(b.y - middle) and absf(a.x - b.x) < 0.6
 	for gun in guns:
-		check(Array(gaps).any(func(g): return on_same_side.call(g, gun)), "a gap at the gun at %s" % gun)
+		assert_bool(gaps.any(func(g): return on_same_side.call(g, gun))) \
+			.override_failure_message("no gap at the gun at %s" % gun).is_true()
 	for gap in gaps:
-		check(guns.any(func(g): return on_same_side.call(gap, g)), "the gap at %s has a gun" % gap)
+		assert_bool(guns.any(func(g): return on_same_side.call(gap, g))) \
+			.override_failure_message("the gap at %s has no gun" % gap).is_true()
 
 func test_crew_mirrors_follow_the_crew() -> void:
 	var deck := load_deck(3)
 	_view(deck).set_3d(true, false)
 	await frames(40)
 	var view := _view(deck)
-	var crew := tree.get_nodes_in_group("crew")
-	check_eq(crew.size(), 3, "crew")
+	var crew := get_tree().get_nodes_in_group("crew")
+	assert_array(crew).has_size(3)
 	for c in crew:
 		var mirror := view.mirror_of(c)
-		check(mirror != null, "crew %s has a mirror" % c.name)
+		assert_object(mirror).override_failure_message("crew %s has no mirror" % c.name).is_not_null()
 		if mirror:
-			var want := view.to_3d(c.global_position)
-			check_near(mirror.position.distance_to(want), 0.0, 0.15, "crew %s mirror position" % c.name)
+			assert_float(mirror.position.distance_to(view.to_3d(c.global_position))).is_less_equal(0.15)
 
 func test_stations_and_enemy_are_mirrored() -> void:
 	var deck := load_deck()
 	_view(deck).set_3d(true, false)
 	await frames(2)
 	var view := _view(deck)
-	for s in tree.get_nodes_in_group("stations"):
+	for s in get_tree().get_nodes_in_group("stations"):
 		if s is Station:
-			check(view.mirror_of(s) != null, "station %s has a mirror" % s.name)
-	check(view.mirror_of(deck.get_node("EnemyShip")) != null, "enemy has a mirror")
+			assert_object(view.mirror_of(s)).override_failure_message("station %s has no mirror" % s.name).is_not_null()
+	assert_object(view.mirror_of(deck.get_node("EnemyShip"))).is_not_null()
 
 func test_one_flame_per_burning_cell() -> void:
 	var deck := load_deck()
 	await frames(2)
-	_view(deck).set_3d(true, false)
+	var view := _view(deck)
+	view.set_3d(true, false)
 	var fire: FireHazard = deck.get_node("Fire")
 	fire.ignite_random()
 	fire.ignite_random()
 	await frames(2)
-	check(fire.burning_cells().size() > 0, "something is burning")
-	check_eq(_view(deck).flame_count(), fire.burning_cells().size(), "3D flames")
+	assert_array(fire.burning_cells()).is_not_empty()
+	assert_int(view.flame_count()).is_equal(fire.burning_cells().size())
 	var cell: Vector2i = fire.burning_cells()[0]
-	check(_view(deck).has_flame_at(_view(deck).to_3d(fire.world_of(cell))), "a flame sits on a burning cell")
+	assert_bool(view.has_flame_at(view.to_3d(fire.world_of(cell)))).is_true()
 
 func test_starts_in_2d_and_idle() -> void:
 	var deck := load_deck()
 	await frames(2)
 	var view := _view(deck)
-	check(not view.is_3d, "starts in 2D")
-	check(not view.is_drawing(), "3D isn't drawn in 2D")
-	check(not view.is_processing(), "3D doesn't process in 2D")
+	assert_bool(view.is_3d).is_false()
+	assert_bool(view.is_drawing()).is_false()
+	assert_bool(view.is_processing()).is_false()
 
 func test_toggle_switches_to_3d_and_back() -> void:
 	var deck := load_deck()
 	await frames(2)
 	var view := _view(deck)
 	view.toggle()
-	check(view.is_3d and view.is_drawing(), "drawing as soon as the switch starts")
-	await tree.create_timer(View3D.SWITCH_TIME + 0.3).timeout
-	check_near(view.blend(), 1.0, 0.001, "fully 3D")
-	check_near(view.camera_tilt(), View3D.GAME_TILT, 0.01, "camera at the game angle")
+	assert_bool(view.is_3d and view.is_drawing()).override_failure_message("not drawing as soon as the switch starts").is_true()
+	await get_tree().create_timer(View3D.SWITCH_TIME + 0.3).timeout
+	assert_float(view.blend()).is_equal_approx(1.0, 0.001)
+	assert_float(view.camera_tilt()).is_equal_approx(View3D.GAME_TILT, 0.01)
 	view.toggle()
-	await tree.create_timer(View3D.SWITCH_TIME + 0.3).timeout
-	check_near(view.blend(), 0.0, 0.001, "fully 2D")
-	check(not view.is_drawing() and not view.is_processing(), "idle again in 2D")
+	await get_tree().create_timer(View3D.SWITCH_TIME + 0.3).timeout
+	assert_float(view.blend()).is_equal_approx(0.0, 0.001)
+	assert_bool(view.is_drawing() or view.is_processing()).override_failure_message("not idle again in 2D").is_false()
 
 func test_first_switch_starts_transparent_and_posed() -> void:
 	var deck := load_deck()
@@ -139,8 +137,8 @@ func test_first_switch_starts_transparent_and_posed() -> void:
 	var view := _view(deck)
 	view.toggle()
 	# no frame has passed, so the tween hasn't ticked: this is what the first 3D frame draws
-	check_eq(view.opacity(), 0.0, "3D starts see-through")
-	check_near(view.camera().fov, View3D.FLAT_FOV, 0.001, "camera starts flat")
+	assert_float(view.opacity()).is_equal(0.0)
+	assert_float(view.camera().fov).is_equal_approx(View3D.FLAT_FOV, 0.001)
 
 func test_flat_camera_lines_up_with_the_2d_camera() -> void:
 	var deck := load_deck()
@@ -150,13 +148,11 @@ func test_flat_camera_lines_up_with_the_2d_camera() -> void:
 	await frames(2)   # let the SubViewport take the screen size
 	view.pose(0.0)
 	var cam_2d: Camera2D = deck.get_node("Camera2D")
-	var cam_3d := view.camera()
 	# a deck corner should land on the same screen pixel in both views
 	var corner := Vector2(16, 16)
 	var px_2d := cam_2d.get_canvas_transform() * corner
-	var px_3d := cam_3d.unproject_position(view.to_3d(corner))
-	check_near(px_3d.x, px_2d.x, 1.5, "corner x")
-	check_near(px_3d.y, px_2d.y, 1.5, "corner y")
+	var px_3d := view.camera().unproject_position(view.to_3d(corner))
+	assert_vector(px_3d).is_equal_approx(px_2d, Vector2(1.5, 1.5))
 
 func test_hud_draws_over_the_3d() -> void:
 	var deck := load_deck()
@@ -164,7 +160,8 @@ func test_hud_draws_over_the_3d() -> void:
 	var view := _view(deck)
 	for node in deck.find_children("*", "CanvasLayer", false, false):
 		if node != view:
-			check(node.layer > view.layer, "%s (layer %d) is above the 3D (layer %d)" % [node.name, node.layer, view.layer])
+			assert_int(node.layer).override_failure_message("%s (layer %d) is not above the 3D (layer %d)" % [node.name, node.layer, view.layer]) \
+				.is_greater(view.layer)
 
 func test_cannon_lamp_shows_its_phase() -> void:
 	var deck := load_deck()
@@ -173,4 +170,4 @@ func test_cannon_lamp_shows_its_phase() -> void:
 	var cannon := deck.get_node("CannonPortFore")
 	cannon.phase = cannon.Phase.RUN_OUT
 	await frames(2)
-	check_eq(_view(deck).lamp_color(cannon), cannon.PHASE_COLORS[cannon.Phase.RUN_OUT], "lamp colour")
+	assert_that(_view(deck).lamp_color(cannon)).is_equal(cannon.PHASE_COLORS[cannon.Phase.RUN_OUT])
