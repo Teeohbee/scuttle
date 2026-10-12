@@ -7,8 +7,18 @@ extends SceneTree
 
 var failures := 0
 var passed := 0
+var _script_errors := ScriptErrors.new()
+
+# A script error ends a test early without failing a check, so catch them and count them as failures.
+class ScriptErrors extends Logger:
+	var seen: Array[String] = []
+	func _log_error(_function: String, file: String, line: int, code: String, rationale: String,
+			_editor_notify: bool, error_type: int, _backtraces: Array[ScriptBacktrace]) -> void:
+		if error_type == ERROR_TYPE_SCRIPT:
+			seen.append("script error: %s (%s:%d)" % [rationale if rationale else code, file, line])
 
 func _initialize() -> void:
+	OS.add_logger(_script_errors)
 	await process_frame
 	var dir := DirAccess.open("res://tests")
 	var files := Array(dir.get_files()).filter(func(f): return f.begins_with("test_") and f.ends_with(".gd"))
@@ -24,7 +34,9 @@ func _initialize() -> void:
 				continue
 			var suite = script.new()
 			suite.tree = self
+			_script_errors.seen.clear()
 			await suite.call(method.name)
+			suite.errors.append_array(_script_errors.seen)
 			if suite.errors.is_empty():
 				passed += 1
 			else:

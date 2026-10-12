@@ -15,9 +15,64 @@ func test_walls_match_the_collision_tiles() -> void:
 	var deck := load_deck()
 	await frames(2)
 	var hull: TileMapLayer = deck.get_node("Hull")
-	check(_wall_cells(hull) > 0, "the hull has walls")
-	check_eq(_view(deck).wall_count(), _wall_cells(hull), "3D walls")
-	check_eq(_view(deck).floor_count(), hull.get_used_cells().size() - _wall_cells(hull), "3D floor tiles")
+	var view := _view(deck)
+	var forward := 0   # wall tiles drawn as walls, not hidden under the quarterdeck
+	for cell in hull.get_used_cells():
+		if hull.get_cell_tile_data(cell).get_collision_polygons_count(0) > 0 \
+				and view.to_3d(hull.to_global(hull.map_to_local(cell))).x < view.quarterdeck_start():
+			forward += 1
+	check(forward > 0, "the hull has walls")
+	check_eq(view.wall_count(), forward, "3D walls")
+	check_eq(view.floor_count(), hull.get_used_cells().size() - _wall_cells(hull), "3D floor tiles")
+
+func test_quarterdeck_only_covers_wall_tiles() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var hull: TileMapLayer = deck.get_node("Hull")
+	var view := _view(deck)
+	var used := hull.get_used_rect()
+	var stern := view.to_3d(hull.to_global(hull.map_to_local(used.end - Vector2i.ONE))).x
+	check(view.quarterdeck_start() < stern, "there's a quarterdeck")
+	var half := hull.tile_set.tile_size.x / 2.0
+	for cell in hull.get_used_cells():
+		if hull.get_cell_tile_data(cell).get_collision_polygons_count(0) == 0:
+			var aft_edge := view.to_3d(hull.to_global(hull.map_to_local(cell) + Vector2(half, 0))).x
+			check(aft_edge <= view.quarterdeck_start() + 0.001, "floor cell %s is under the quarterdeck" % cell)
+
+func test_hull_outline_encloses_every_tile() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var hull: TileMapLayer = deck.get_node("Hull")
+	var outline := _view(deck).hull_outline()
+	check(outline.size() > 8, "the hull has an outline")
+	var half := Vector2(hull.tile_set.tile_size) / 2.0
+	for cell in hull.get_used_cells():
+		for corner in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+			var at := _view(deck).to_3d(hull.to_global(hull.map_to_local(cell) + corner * half))
+			if not Geometry2D.is_point_in_polygon(Vector2(at.x, at.z), outline):
+				check(false, "cell %s sticks out of the hull" % cell)
+				return
+
+func test_bulwark_has_a_gap_at_each_gun_and_nowhere_else() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	var middle := 0.0
+	for p in view.hull_outline():
+		middle += p.y / view.hull_outline().size()
+	var guns: Array[Vector2] = []
+	for s in tree.get_nodes_in_group("stations"):
+		if "phase" in s:
+			var at := view.to_3d(s.global_position)
+			guns.append(Vector2(at.x, at.z))
+	check_eq(guns.size(), 3, "guns")
+	var gaps := view.bulwark_gaps()
+	var on_same_side := func(a: Vector2, b: Vector2) -> bool:
+		return signf(a.y - middle) == signf(b.y - middle) and absf(a.x - b.x) < 0.6
+	for gun in guns:
+		check(Array(gaps).any(func(g): return on_same_side.call(g, gun)), "a gap at the gun at %s" % gun)
+	for gap in gaps:
+		check(guns.any(func(g): return on_same_side.call(gap, g)), "the gap at %s has a gun" % gap)
 
 func test_crew_mirrors_follow_the_crew() -> void:
 	var deck := load_deck(3)
