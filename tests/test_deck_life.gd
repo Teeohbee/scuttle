@@ -76,3 +76,13 @@ func test_rats_scurry_along_the_rail_and_never_fall_in_a_gun_port() -> void:
 		if rats[k].global_position.distance_to(start[k]) > 0.2:
 			moved += 1
 	assert_int(moved).override_failure_message("the rats sit still").is_greater(0)
+
+func test_the_jolly_boat_is_towed_astern_and_bobs() -> void:
+	await _setup()
+	var boat := _life.jolly_boat()
+	var stern := -INF
+	for p in _view.hull_outline():
+		stern = maxf(stern, p.x)
+	assert_float(boat.global_position.x).is_greater(stern + 1.5)
+	assert_float(boat.global_position.y).is_less(0.0)
+	assert_bool(await _moves(func(): return boat.global_position.y)).override_failure_message("the boat sits on glass").is_true()

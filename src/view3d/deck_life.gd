@@ -1,7 +1,8 @@
 class_name DeckLife
 extends Node3D
 # Life on deck that isn't gameplay (look book Volume V): the wheel and binnacle on the quarterdeck, the
-# flag at the stern, the bell at the bow, the parrot on the mainmast top and rats along the rail. It reads only where the View3D put the deck, and moves only
+# flag at the stern, the bell at the bow, the parrot on the mainmast top, rats along the rail and the
+# jolly boat towed astern. It reads only where the View3D put the deck, and moves only
 # when the view calls update(), which it does only while it's in 3D.
 
 const FLAG_STRIPS := 8
@@ -17,6 +18,7 @@ var _bell: Node3D
 var _parrot: Node3D
 var _parrot_head: Node3D
 var _rats: Array[Node3D] = []
+var _boat: Node3D
 var _rng := RandomNumberGenerator.new()
 
 func _init(view: View3D) -> void:
@@ -98,6 +100,9 @@ func _init(view: View3D) -> void:
 	for k in mini(3, runs.size()):
 		_build_rat(runs[k])
 
+	# the jolly boat, towed astern on a line from the taffrail
+	_build_jolly_boat(Vector3(r.end.x + 2.6, -0.55, mid + 0.6), Vector3(r.end.x + 0.3, qd + 0.4, mid))
+
 	var still := MeshInstance3D.new()
 	still.mesh = MeshKit.commit(st)
 	add_child(still)
@@ -126,6 +131,9 @@ func parrot_head() -> Node3D:
 func rats() -> Array[Node3D]:
 	return _rats
 
+func jolly_boat() -> Node3D:
+	return _boat
+
 func update(delta: float) -> void:
 	var t := Time.get_ticks_msec() / 1000.0
 	_wheel.rotation.x = sin(t * 0.4) * 0.6 + sin(t * 0.13) * 0.4   # the helmsman nudging her course
@@ -135,6 +143,8 @@ func update(delta: float) -> void:
 	if _parrot:   # looks about in jerks, with a twitch, and bobs now and then
 		_parrot_head.rotation.y = sin(floorf(t / 1.1) * 2.7) * 1.0 + sin(t * 5.0) * 0.05
 		_parrot.position.y = _parrot.get_meta("perch") + maxf(0.0, sin(t * 2.3)) ** 8 * 0.04
+	_boat.position.y = _boat.get_meta("float") + sin(t * 0.9) * 0.05 + sin(t * 2.3) * 0.02
+	_boat.rotation = Vector3(sin(t * 0.7) * 0.04, 0.12 + sin(t * 0.3) * 0.08, sin(t * 1.1) * 0.05)
 	for rat in _rats:   # dash to a spot along the run, sit a while, dash again
 		var run: Vector3 = rat.get_meta("run")   # x from, x to, rail z
 		var pause: float = rat.get_meta("pause") - delta
@@ -203,6 +213,25 @@ func _build_rat(run: Vector3) -> void:
 	MeshKit.strut(st, Vector3(0, 0.04, -0.08), Vector3(0, 0.02, -0.24), 0.012, Color("c89a90"))
 	_mesh(rat, st)
 	_rats.append(rat)
+
+# A small open boat lying along the ship's wake, its painter running up to the taffrail.
+func _build_jolly_boat(at: Vector3, taffrail: Vector3) -> void:
+	_boat = _node(at)
+	_boat.set_meta("float", at.y)
+	var st := MeshKit.begin()
+	var bowl := PackedVector2Array()
+	for i in 5:
+		var a := PI / 2 * i / 4
+		bowl.append(Vector2(sin(a), -cos(a)))
+	var shape := Basis(Vector3.UP, PI / 2) * Basis.from_scale(Vector3(0.6, 0.35, 1.5))   # long along x
+	var hull := Color("8a3a2a")
+	MeshKit.lathe(st, Vector3(0, 0.3, 0), bowl, 16, hull, shape, PackedColorArray([hull, hull, hull, hull, Color("4a2a1c")]))
+	MeshKit.torus(st, Vector3(0, 0.31, 0), 1.0, 0.05, DeckDresser.OCHRE, shape, 20)
+	for x in [-0.5, 0.2]:
+		MeshKit.box(st, Vector3(x, 0.33, 0), Vector3(0.14, 0.04, 1.0), DeckDresser.LIGHT)
+	MeshKit.strut(st, Vector3(-0.9, 0.36, 0.25), Vector3(0.9, 0.36, -0.1), 0.04, DeckDresser.LIGHT)   # a shipped oar
+	MeshKit.strut(st, Vector3(-1.45, 0.33, 0), taffrail - at, 0.025, DeckDresser.ROPE)   # the painter
+	_mesh(_boat, st)
 
 # A white skull over crossed bones on black.
 func _skull_and_bones() -> ImageTexture:
