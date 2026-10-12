@@ -205,3 +205,26 @@ func test_a_lantern_at_every_gangway_post_and_mast() -> void:
 			.override_failure_message("no lantern by %s" % spot).is_true()
 	for light in lights:
 		assert_bool(light.shadow_enabled).is_false()
+
+func test_afternoon_by_default_with_the_lanterns_unlit() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	assert_bool(view.is_night()).is_false()
+	for light in view.lanterns():
+		assert_float(light.light_energy).is_equal(0.0)
+
+func test_night_lights_the_lanterns_and_darkens_the_sky() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	assert_bool(InputMap.has_action("toggle_mood")).is_true()
+	var day_sky := view.sky_color()
+	view.toggle_mood()
+	assert_bool(view.is_night()).is_true()
+	assert_float(view.sky_color().get_luminance()).is_less(day_sky.get_luminance())
+	for light in view.lanterns():
+		assert_float(light.light_energy).is_greater(0.0)
+	view.toggle_mood()
+	assert_bool(view.is_night()).is_false()
+	assert_that(view.sky_color()).is_equal(day_sky)

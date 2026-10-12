@@ -25,6 +25,12 @@ const ROPE_COLOR := Color(0.16, 0.1, 0.06)
 const LANTERN_COLOR := Color(1.0, 0.65, 0.35)
 const LANTERN_ENERGY := 1.0
 const LANTERN_RANGE := 7.0
+# Two moods. The afternoon is the default; lantern light is behind toggle_mood (N). At night the
+# lanterns are dim and warm, so the fire stays the brightest thing on deck.
+const DAY := {sky = Color(0.1, 0.25, 0.36), sea = Color(0.12, 0.33, 0.48), sun = Color.WHITE, sun_energy = 0.9,
+	ambient = Color(0.55, 0.62, 0.75), ambient_energy = 0.3, lanterns = false}
+const NIGHT := {sky = Color(0.027, 0.063, 0.11), sea = Color(0.043, 0.118, 0.188), sun = Color(0.66, 0.74, 0.91), sun_energy = 0.35,
+	ambient = Color(0.25, 0.31, 0.48), ambient_energy = 0.4, lanterns = true}
 const BALUSTER_COLOR := Color(0.72, 0.53, 0.26)
 const ROOM_COLORS := {
 	"magazine": Color(0.49, 0.29, 0.23),
@@ -71,6 +77,10 @@ var _dresser: DeckDresser
 var _shroud_feet := PackedVector3Array()
 var _lanterns: Array[OmniLight3D] = []
 var _lantern_glass: StandardMaterial3D
+var _night := false
+var _sun: DirectionalLight3D
+var _env: Environment
+var _sea: StandardMaterial3D
 var _floor_count := 0
 var _mirrors := {}   # 2D node -> its 3D stand-in
 var _flames: Array[MeshInstance3D] = []
@@ -94,6 +104,7 @@ func _ready() -> void:
 	_build_deck()
 	_build_rigging()
 	_build_lanterns()
+	_set_mood(DAY)
 	_sleep()
 
 func _process(_delta: float) -> void:
@@ -103,6 +114,8 @@ func _process(_delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_view"):
 		toggle()
+	elif event.is_action_pressed("toggle_mood"):
+		toggle_mood()
 
 func toggle() -> void:
 	set_3d(not is_3d)
@@ -123,6 +136,27 @@ func set_3d(on: bool, animate := true) -> void:
 	_tween.tween_method(_apply, _blend, goal, SWITCH_TIME * absf(goal - _blend))
 	if not on:
 		_tween.tween_callback(_sleep)
+
+func toggle_mood() -> void:
+	_night = not _night
+	_set_mood(NIGHT if _night else DAY)
+
+func is_night() -> bool:
+	return _night
+
+func sky_color() -> Color:
+	return _env.background_color
+
+func _set_mood(mood: Dictionary) -> void:
+	_env.background_color = mood.sky
+	_env.ambient_light_color = mood.ambient
+	_env.ambient_light_energy = mood.ambient_energy
+	_sun.light_color = mood.sun
+	_sun.light_energy = mood.sun_energy
+	_sea.albedo_color = mood.sea
+	for light in _lanterns:
+		light.light_energy = LANTERN_ENERGY if mood.lanterns else 0.0
+	_lantern_glass.emission_enabled = mood.lanterns
 
 func blend() -> float:
 	return _blend
@@ -182,25 +216,23 @@ func _build_stage() -> void:
 	_camera = Camera3D.new()
 	_camera.keep_aspect = Camera3D.KEEP_WIDTH
 	_world.add_child(_camera)
-	var sun := DirectionalLight3D.new()
-	sun.rotation = Vector3(deg_to_rad(-55), deg_to_rad(-30), 0)
-	sun.light_energy = 0.9
-	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 300.0
-	_world.add_child(sun)
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.1, 0.25, 0.36)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.55, 0.62, 0.75)
-	env.ambient_light_energy = 0.3
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	_sun = DirectionalLight3D.new()
+	_sun.rotation = Vector3(deg_to_rad(-55), deg_to_rad(-30), 0)
+	_sun.shadow_enabled = true
+	_sun.directional_shadow_max_distance = 300.0
+	_world.add_child(_sun)
+	_env = Environment.new()
+	_env.background_mode = Environment.BG_COLOR
+	_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	_env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var world_env := WorldEnvironment.new()
-	world_env.environment = env
+	world_env.environment = _env
 	_world.add_child(world_env)
-	var sea := PlaneMesh.new()
-	sea.size = Vector2(400, 400)
-	_world.add_child(_mesh(sea, Vector3(0, -0.8, 0), Color(0.12, 0.33, 0.48)))
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(400, 400)
+	var sea := _mesh(plane, Vector3(0, -0.8, 0), Color.WHITE)
+	_sea = sea.material_override
+	_world.add_child(sea)
 
 func mirror_of(node: Node) -> Node3D:
 	return _mirrors.get(node)
