@@ -45,3 +45,13 @@ func test_the_bell_hangs_at_the_bow_and_swings() -> void:
 func test_nothing_moves_in_2d() -> void:
 	await _setup(false)
 	assert_bool(await _moves(func(): return _life.flag_tip().global_position.z)).is_false()
+
+func test_the_parrot_perches_on_the_mainmast_top() -> void:
+	await _setup()
+	var masts := _view.dresser().masts()
+	masts.sort()
+	var main := _view.cell_centre(masts[masts.size() / 2])
+	var parrot := _life.parrot()
+	assert_float(Vector2(parrot.global_position.x - main.x, parrot.global_position.z - main.z).length()).is_less(0.8)
+	assert_float(parrot.global_position.y).is_between(DeckDresser.TOP_HEIGHT, DeckDresser.TOP_HEIGHT + 0.6)
+	assert_bool(await _moves(func(): return _life.parrot_head().rotation.y)).override_failure_message("the parrot never looks about").is_true()

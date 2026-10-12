@@ -108,6 +108,14 @@ static func ball(st: SurfaceTool, centre: Vector3, radius: float, color: Color, 
 		profile.append(Vector2(cos(a) * radius, sin(a) * radius))
 	lathe(st, centre, profile, sides, color)
 
+# A squashed ball: `size` is its radius along each axis.
+static func blob(st: SurfaceTool, centre: Vector3, size: Vector3, color: Color, basis := Basis.IDENTITY, rings := 6, sides := 10) -> void:
+	var profile := PackedVector2Array()
+	for i in rings + 1:
+		var a := PI * i / rings - PI * 0.5
+		profile.append(Vector2(cos(a), sin(a)))
+	lathe(st, centre, profile, sides, color, basis * Basis.from_scale(size))
+
 # A barrel/keg: bulging staves with darker hoops. `basis` lays it down.
 static func barrel(st: SurfaceTool, base: Vector3, radius: float, height: float, wood: Color, hoop: Color, sides := 8, basis := Basis.IDENTITY) -> void:
 	var r := radius
