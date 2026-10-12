@@ -93,6 +93,7 @@ var _floor_count := 0
 var _mirrors := {}   # 2D node -> its 3D stand-in
 var _flames: Array[MeshInstance3D] = []
 var _fire_lights: Array[OmniLight3D] = []
+var _life: DeckLife
 
 func _ready() -> void:
 	_container = SubViewportContainer.new()
@@ -113,12 +114,15 @@ func _ready() -> void:
 	_build_deck()
 	_build_rigging()
 	_build_lanterns()
+	_life = DeckLife.new(self)
+	_world.add_child(_life)
 	_set_mood(DAY)
 	_sleep()
 
 func _process(_delta: float) -> void:
 	_sync()
 	_swing_lanterns()
+	_life.update()
 	pose(_blend)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -274,6 +278,12 @@ func lanterns() -> Array[OmniLight3D]:
 
 func shroud_feet() -> PackedVector3Array:
 	return _shroud_feet
+
+func life() -> DeckLife:
+	return _life
+
+func deck_rect() -> Rect2:
+	return _deck_rect()
 
 func dresser() -> DeckDresser:
 	return _dresser
