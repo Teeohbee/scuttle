@@ -8,6 +8,7 @@ extends CanvasLayer
 # angle. In 2D the 3D isn't drawn and doesn't process.
 
 const PX_PER_M := 16.0
+const RENDER_SCALE := 1.0   # the 3D's resolution as a share of the window's: lower is chunkier and cheaper
 const HELD_HEIGHT := 1.65   # carried items ride above the monkey's hat
 const SWITCH_TIME := 1.2
 const FADE_SHARE := 0.3          # first 30% of the switch is the crossfade
@@ -100,12 +101,13 @@ func _ready() -> void:
 	_container = SubViewportContainer.new()
 	_container.stretch = true
 	_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_container.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_container)
 	_viewport = SubViewport.new()
 	_viewport.own_world_3d = true
 	_viewport.msaa_3d = Viewport.MSAA_4X
 	_container.add_child(_viewport)
+	_fit_to_window()
+	get_window().size_changed.connect(_fit_to_window)
 	_world = Node3D.new()
 	_viewport.add_child(_world)
 	_build_stage()
@@ -119,6 +121,14 @@ func _ready() -> void:
 	_world.add_child(_life)
 	_set_mood(DAY)
 	_sleep()
+
+# The 2D is drawn at 640x360 and scaled up, but the 3D renders at the window's own resolution (times
+# RENDER_SCALE), shrunk back down by the same stretch so it covers the screen exactly.
+func _fit_to_window() -> void:
+	var logical := get_viewport().get_visible_rect().size
+	var window := Vector2(get_window().size)
+	_container.size = (window * RENDER_SCALE).round()   # stretch sizes the SubViewport to this
+	_container.scale = logical / _container.size
 
 func _process(delta: float) -> void:
 	_sync()
@@ -172,6 +182,13 @@ func _set_mood(mood: Dictionary) -> void:
 	for light in _lanterns:
 		light.light_energy = LANTERN_ENERGY if mood.lanterns else 0.0
 	_lantern_glass.emission_enabled = mood.lanterns
+
+func render_size() -> Vector2i:
+	return _viewport.size
+
+# How much of the screen the 3D covers, in the game's 640x360 units.
+func drawn_size() -> Vector2:
+	return _container.size * _container.scale
 
 func blend() -> float:
 	return _blend
