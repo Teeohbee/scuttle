@@ -21,6 +21,7 @@ const BULWARK_COLOR := Color(0.42, 0.27, 0.16)
 const BULWARK_PAINT := Color(0.6, 0.16, 0.12)   # inboard face
 const RAIL_COLOR := Color(0.3, 0.19, 0.11)
 const QUARTERDECK_HEIGHT := 0.45
+const ROPE_COLOR := Color(0.16, 0.1, 0.06)
 const BALUSTER_COLOR := Color(0.72, 0.53, 0.26)
 const ROOM_COLORS := {
 	"magazine": Color(0.49, 0.29, 0.23),
@@ -64,6 +65,7 @@ var _gaps := PackedVector2Array()   # gun ports in the bulwark, (x, z) in metres
 var _quarterdeck_start := INF       # x in metres; everything aft of it is one step up
 var _quarterdeck_column := 0
 var _dresser: DeckDresser
+var _shroud_feet := PackedVector3Array()
 var _floor_count := 0
 var _mirrors := {}   # 2D node -> its 3D stand-in
 var _flames: Array[MeshInstance3D] = []
@@ -85,6 +87,7 @@ func _ready() -> void:
 	_build_bulwark()
 	_build_quarterdeck()
 	_build_deck()
+	_build_rigging()
 	_sleep()
 
 func _process(_delta: float) -> void:
@@ -214,6 +217,9 @@ func bulwark_gaps() -> PackedVector2Array:
 
 func quarterdeck_start() -> float:
 	return _quarterdeck_start
+
+func shroud_feet() -> PackedVector3Array:
+	return _shroud_feet
 
 func dresser() -> DeckDresser:
 	return _dresser
@@ -426,6 +432,36 @@ func _build_deck() -> void:
 	dressing.mesh = _dresser.mesh()
 	_world.add_child(dressing)
 	_floor_count = floors.size()
+
+# Shrouds from each fighting top down to the rail on both sides, with ratlines across them, and a
+# pin rail inside the bulwark where they come down. A shroud that would land in a gun port is left out.
+func _build_rigging() -> void:
+	var r := _deck_rect()
+	var st := MeshKit.begin()
+	for cell in _dresser.masts():
+		var mast := to_3d(hull.to_global(hull.map_to_local(cell)))
+		for side: float in [-1.0, 1.0]:
+			var rail_z := (r.position.y - 0.25) if side < 0 else (r.end.y + 0.25)
+			var top := mast + Vector3(0, DeckDresser.TOP_HEIGHT - 0.05, side * 0.2)
+			var feet: Array[Vector3] = []
+			for j in [-1.5, -0.5, 0.5, 1.5]:
+				var foot := Vector3(mast.x + j * 0.5, BULWARK_HEIGHT + 0.07, rail_z)
+				if _gaps.is_empty() or Array(_gaps).all(func(g): return g.distance_to(Vector2(foot.x, foot.z)) > 0.45):
+					feet.append(foot)
+			for foot in feet:
+				MeshKit.strut(st, top, foot, 0.025, ROPE_COLOR)
+				_shroud_feet.append(foot)
+			var u := 0.12
+			while u < 0.95:   # ratlines: rungs across the shrouds
+				MeshKit.strut(st, top.lerp(feet.front(), u), top.lerp(feet.back(), u), 0.012, ROPE_COLOR)
+				u += 0.1
+			var pin_z := rail_z - side * 0.25
+			MeshKit.box(st, Vector3(mast.x, 0.62, pin_z), Vector3(1.6, 0.08, 0.14), DeckDresser.CAP)
+			for k in 6:
+				MeshKit.cylinder(st, Vector3(mast.x - 0.65 + k * 0.26, 0.62, pin_z), 0.022, 0.2, 5, DeckDresser.LIGHT)
+	var rigging := MeshInstance3D.new()
+	rigging.mesh = MeshKit.commit(st)
+	_world.add_child(rigging)
 
 func _multimesh(mesh: Mesh, at: Array[Transform3D], colors: Array[Color], tint: Color) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new()

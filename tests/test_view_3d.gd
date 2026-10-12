@@ -169,3 +169,21 @@ func test_cannon_lamp_shows_its_phase() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	assert_that(_view(deck).lamp_color(cannon)).is_equal(cannon.PHASE_COLORS[cannon.Phase.RUN_OUT])
+
+func test_shrouds_come_down_on_the_rail_clear_of_the_gun_ports() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	var ends := view.shroud_feet()
+	assert_int(ends.size()).is_greater_equal(view.dresser().masts().size() * 2 * 3)   # three a side at least
+	var outline := view.hull_outline()
+	for foot in ends:
+		var at := Vector2(foot.x, foot.z)
+		var nearest := INF
+		for i in outline.size():
+			var edge := Geometry2D.get_closest_point_to_segment(at, outline[i], outline[(i + 1) % outline.size()])
+			nearest = minf(nearest, edge.distance_to(at))
+		assert_float(nearest).override_failure_message("shroud at %s isn't on the rail" % foot).is_less(0.3)
+		assert_float(foot.y).is_equal_approx(View3D.BULWARK_HEIGHT, 0.1)
+		for gap in view.bulwark_gaps():
+			assert_float(gap.distance_to(at)).override_failure_message("shroud at %s comes down in a gun port" % foot).is_greater(0.4)

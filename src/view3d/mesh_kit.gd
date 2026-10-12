@@ -55,6 +55,12 @@ static func box(st: SurfaceTool, centre: Vector3, size: Vector3, color: Color, b
 	quad(st, p.call(1, -1, 1), p.call(1, -1, -1), p.call(1, 1, -1), p.call(1, 1, 1), color)      # +x
 	quad(st, p.call(-1, -1, -1), p.call(-1, -1, 1), p.call(-1, 1, 1), p.call(-1, 1, -1), color)  # -x
 
+# A thin square-section bar from a to b: rigging, rails.
+static func strut(st: SurfaceTool, a: Vector3, b: Vector3, thickness: float, color: Color) -> void:
+	var along := b - a
+	var basis := Basis(Quaternion(Vector3.UP, along.normalized()))
+	box(st, (a + b) / 2.0, Vector3(thickness, along.length(), thickness), color, basis)
+
 # Revolve a profile of (radius, height) points about +Y. Flat faces, `sides`
 # segments; caps are closed when the profile ends off-axis, unless `caps` is false.
 static func lathe(st: SurfaceTool, base: Vector3, profile: PackedVector2Array, sides: int, color: Color, basis := Basis.IDENTITY, colors: PackedColorArray = PackedColorArray(), caps := true) -> void:
