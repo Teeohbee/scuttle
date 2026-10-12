@@ -199,7 +199,7 @@ func test_a_lantern_at_every_gangway_post_and_mast() -> void:
 	var lights := view.lanterns()
 	assert_int(lights.size()).is_equal(spots.size())
 	for spot in spots:
-		assert_bool(lights.any(func(l): return Vector2(l.position.x - spot.x, l.position.z - spot.z).length() < 0.6)) \
+		assert_bool(lights.any(func(l): return Vector2(l.global_position.x - spot.x, l.global_position.z - spot.z).length() < 0.6)) \
 			.override_failure_message("no lantern by %s" % spot).is_true()
 	for light in lights:
 		assert_bool(light.shadow_enabled).is_false()
@@ -244,6 +244,21 @@ func test_fires_cast_a_flickering_light() -> void:
 	assert_bool(lit.all(near_fire)).is_true()
 	var energies := {}
 	for i in 10:
-		await drawn_frames(1)
+		await get_tree().create_timer(0.05).timeout
 		energies[snappedf(lit[0].light_energy, 0.01)] = true
 	assert_int(energies.size()).override_failure_message("the fire light doesn't flicker").is_greater(3)
+
+func test_lanterns_swing_on_their_brackets() -> void:
+	var deck := load_deck()
+	var view := _view(deck)
+	view.set_3d(true, false)
+	await drawn_frames(2)
+	var light: OmniLight3D = view.lanterns()[0]
+	var hook := light.get_parent() as Node3D
+	var seen := {}
+	for i in 20:
+		await get_tree().create_timer(0.05).timeout
+		seen[snappedf(light.global_position.x + light.global_position.z, 0.005)] = true
+		# it swings about the bracket, so it never drifts from it
+		assert_float(light.global_position.distance_to(hook.global_position)).is_equal_approx(View3D.LANTERN_DROP, 0.01)
+	assert_int(seen.size()).override_failure_message("the lantern hangs still").is_greater(3)
