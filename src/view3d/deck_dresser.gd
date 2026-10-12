@@ -6,12 +6,13 @@ extends RefCounted
 #   EDGE     beside a room's floor: a piece of that room's stores, facing into the room
 #   DIVIDER  room floor on both opposite sides. Each run of them is one piece of deck furniture:
 #            the ship's boat on chocks, a hatch grating or cargo lashed under canvas
+#   MAST     stands alone, with no wall beside it: a lower mast with a fife rail and a fighting top
 #   BITT     meets only the passage: a stout post with a coil, filling the tile
 #   NONE     touches no floor, so nobody can reach it: bare deck
 # Where an edge piece meets a doorway off the passage, a tall gangway post frames the way through.
 # Everything is baked into one vertex-coloured mesh.
 
-enum Kind { NONE, EDGE, DIVIDER, BITT }
+enum Kind { NONE, EDGE, DIVIDER, BITT, MAST }
 
 const SIDES: Array[Vector2i] = [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]
 
@@ -30,6 +31,9 @@ const BLACK := Color("1c1a18")
 const OCHRE := Color("c89a3a")
 const TARP := Color("4e463a")
 const BOAT := Color("2a5a6a")
+# Lower masts only: anything much taller covers the deck from the game camera (look book Volume V).
+const MAST_HEIGHT := 4.6
+const TOP_HEIGHT := 4.1   # the fighting top, where the shrouds start
 const DIVIDER_STYLES := ["boat", "grating", "lashed"]
 
 var _hull: TileMapLayer
@@ -69,6 +73,13 @@ func gangway_posts() -> Array[Dictionary]:
 func dividers() -> Array[Dictionary]:
 	return _dividers
 
+func masts() -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for cell: Vector2i in _pieces:
+		if kind_of(cell) == Kind.MAST:
+			out.append(cell)
+	return out
+
 func is_under_quarterdeck(cell: Vector2i) -> bool:
 	return cell.x >= _quarterdeck_column
 
@@ -84,6 +95,8 @@ func _classify(cell: Vector2i) -> Dictionary:
 	for d in SIDES:
 		if _room(cell + d) != "":
 			return {kind = Kind.EDGE, room = _room(cell + d), facing = d}
+	if not SIDES.any(func(d): return _is_wall(cell + d)):
+		return {kind = Kind.MAST}
 	if SIDES.any(func(d): return _is_floor(cell + d)):
 		return {kind = Kind.BITT}
 	return {kind = Kind.NONE}
@@ -137,6 +150,8 @@ func _build() -> ArrayMesh:
 				_edge(st, piece.room, at, basis, cell.x + cell.y)
 			Kind.BITT:
 				_bitt(st, at)
+			Kind.MAST:
+				_mast(st, at)
 	for run in _dividers:
 		var centre := Vector3.ZERO
 		for cell in run.cells:
@@ -243,3 +258,26 @@ func _lashed(st: SurfaceTool, at: Vector3, basis: Basis, length: float) -> void:
 	MeshKit.cylinder(st, at + basis * Vector3(0, 0.7, -long / 2.0), 0.45, long, 10, TARP, roof)
 	for k in [-1, 0, 1]:
 		MeshKit.box(st, at + basis * Vector3(0, 0.43, k * length * 0.3), Vector3(0.96, 0.9, 0.05), ROPE, basis)
+
+# A lower mast: a fife rail round its foot that fills the tile, iron bands, a fighting top and a short
+# topmast. Sails are sent down.
+func _mast(st: SurfaceTool, at: Vector3) -> void:
+	for c in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+		MeshKit.box(st, at + Vector3(c.x * 0.44, 0.31, c.y * 0.44), Vector3(0.08, 0.62, 0.08), DARK)
+	for side in [-1, 1]:
+		MeshKit.box(st, at + Vector3(side * 0.44, 0.62, 0), Vector3(0.08, 0.08, 0.96), CAP)
+		MeshKit.box(st, at + Vector3(0, 0.62, side * 0.44), Vector3(0.96, 0.08, 0.08), CAP)
+		for k in [-1, 0, 1]:
+			MeshKit.cylinder(st, at + Vector3(side * 0.44, 0.64, k * 0.3), 0.022, 0.2, 5, LIGHT)
+			MeshKit.torus(st, at + Vector3(side * 0.47, 0.5, k * 0.3), 0.08, 0.02, ROPE, Basis(Vector3.BACK, PI / 2), 8)
+	var taper := func(h: float) -> float: return lerpf(0.28, 0.17, h / MAST_HEIGHT)
+	MeshKit.lathe(st, at, PackedVector2Array([Vector2(0.28, 0), Vector2(0.17, MAST_HEIGHT)]), 14, CAP)
+	for h in [0.9, 1.7, 3.6]:
+		MeshKit.torus(st, at + Vector3(0, h, 0), taper.call(h), 0.02, IRON)
+	MeshKit.box(st, at + Vector3(0, TOP_HEIGHT, 0), Vector3(1.3, 0.1, 1.1), DARK)
+	for c in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+		MeshKit.box(st, at + Vector3(c.x * 0.62, TOP_HEIGHT + 0.25, c.y * 0.52), Vector3(0.05, 0.4, 0.05), DARK)
+	for side in [-1, 1]:
+		MeshKit.box(st, at + Vector3(0, TOP_HEIGHT + 0.45, side * 0.52), Vector3(1.3, 0.05, 0.05), CAP)
+	MeshKit.lathe(st, at + Vector3(0, MAST_HEIGHT, 0), PackedVector2Array([Vector2(0.1, 0), Vector2(0.06, 1.6)]), 8, LIGHT)
+	MeshKit.ball(st, at + Vector3(0, MAST_HEIGHT + 1.62, 0), 0.09, BRASS)
