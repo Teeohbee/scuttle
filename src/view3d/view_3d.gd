@@ -15,7 +15,7 @@ const FADE_SHARE := 0.3          # first 30% of the switch is the crossfade
 const FLAT_FOV := 10.0           # horizontal, degrees: narrow enough to look flat
 const GAME_FOV := 50.0
 const GAME_TILT := deg_to_rad(31.0)
-const FLOOR_COLOR := Color(0.62, 0.43, 0.27)
+const FLOOR_COLOR := Color(0.52, 0.36, 0.23)
 const PLANK_TILE := 8.0   # metres of deck one plank texture covers
 const HULL_COLOR := Color(0.29, 0.17, 0.11)
 const HULL_DEPTH := 2.2
@@ -32,10 +32,11 @@ const LANTERN_DROP := 0.36    # from its hook to the middle of the glass
 const LANTERN_SWING := 0.12   # radians
 # Two moods. The afternoon is the default; lantern light is behind toggle_mood (N). At night the
 # lanterns are dim and warm, so the fire stays the brightest thing on deck.
-const DAY := {sky = Color(0.1, 0.25, 0.36), sea = Color(0.12, 0.33, 0.48), sun = Color.WHITE, sun_energy = 0.9,
-	ambient = Color(0.55, 0.62, 0.75), ambient_energy = 0.3, lanterns = false}
+# The deck is lit from above by the sky and from below by the sea and the hull (sky_top and ground).
+const DAY := {sky = Color(0.1, 0.25, 0.36), sea = Color(0.12, 0.33, 0.48), sun = Color("ffe2b8"), sun_energy = 1.05,
+	sky_top = Color("9ab8e0"), ground = Color("4a3020"), ambient_energy = 0.45, lanterns = false}
 const NIGHT := {sky = Color(0.027, 0.063, 0.11), sea = Color(0.043, 0.118, 0.188), sun = Color(0.66, 0.74, 0.91), sun_energy = 0.35,
-	ambient = Color(0.25, 0.31, 0.48), ambient_energy = 0.4, lanterns = true}
+	sky_top = Color("40507a"), ground = Color("1a1c28"), ambient_energy = 0.45, lanterns = true}
 # Each burning cell lights the deck round it, up to a few lights; flickering, so the fire is the
 # liveliest light on deck, day or night.
 const MAX_FIRE_LIGHTS := 6
@@ -176,14 +177,22 @@ func sky_color() -> Color:
 
 func _set_mood(mood: Dictionary) -> void:
 	_env.background_color = mood.sky
-	_env.ambient_light_color = mood.ambient
+	var sky := _env.sky.sky_material as ProceduralSkyMaterial
+	sky.sky_top_color = mood.sky_top
+	sky.sky_horizon_color = mood.sky_top.lerp(mood.ground, 0.4)
+	sky.ground_horizon_color = mood.sky_top.lerp(mood.ground, 0.6)
+	sky.ground_bottom_color = mood.ground
 	_env.ambient_light_energy = mood.ambient_energy
+	_env.fog_light_color = mood.sky
 	_sun.light_color = mood.sun
 	_sun.light_energy = mood.sun_energy
 	_sea.albedo_color = mood.sea
 	for light in _lanterns:
 		light.light_energy = LANTERN_ENERGY if mood.lanterns else 0.0
 	_lantern_glass.emission_enabled = mood.lanterns
+
+func environment() -> Environment:
+	return _env
 
 func render_size() -> Vector2i:
 	return _viewport.size
@@ -253,11 +262,22 @@ func _build_stage() -> void:
 	_sun = DirectionalLight3D.new()
 	_sun.rotation = Vector3(deg_to_rad(-55), deg_to_rad(-30), 0)
 	_sun.shadow_enabled = true
-	_sun.directional_shadow_max_distance = 300.0
+	_sun.directional_shadow_max_distance = 120.0
+	_sun.shadow_blur = 1.5
 	_world.add_child(_sun)
 	_env = Environment.new()
 	_env.background_mode = Environment.BG_COLOR
-	_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	_env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY   # the sky is only for light: the background stays a plain colour
+	_env.sky = Sky.new()
+	_env.sky.sky_material = ProceduralSkyMaterial.new()
+	_env.ssao_enabled = true   # contact shadows where cargo, crew and rails meet the deck
+	_env.ssao_radius = 0.8
+	_env.ssao_intensity = 2.0
+	_env.fog_enabled = true    # a light haze on whatever's furthest from the camera
+	_env.fog_mode = Environment.FOG_MODE_DEPTH
+	_env.fog_depth_begin = 45.0
+	_env.fog_depth_end = 140.0
+	_env.fog_density = 0.35
 	_env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var world_env := WorldEnvironment.new()
 	world_env.environment = _env
