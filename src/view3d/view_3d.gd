@@ -12,6 +12,7 @@ const ROLL := 0.012   # radians, side to side; pitch is 70% of it
 const HEAVE := 0.08   # metres
 const RENDER_SCALE := 1.0   # the 3D's resolution as a share of the window's: lower is chunkier and cheaper
 const HELD_HEIGHT := 1.65   # carried items ride above the monkey's hat
+const ENEMY_STANDOFF := 1.0   # metres of sea between the enemy and its 2D spot, so its broadside clears our rail
 const SWITCH_TIME := 1.2
 const FADE_SHARE := 0.3          # first 30% of the switch is the crossfade
 const FLAT_FOV := 10.0           # horizontal, degrees: narrow enough to look flat
@@ -65,7 +66,7 @@ const ITEM_COLORS := {
 
 @export var hull: TileMapLayer
 @export var fire: FireHazard
-@export var enemy: Node2D
+@export var enemy: EnemyShip
 @export var camera_2d: Camera2D
 
 var is_3d := false
@@ -227,6 +228,7 @@ func pose(b: float) -> void:
 	_camera.position = _target() + Vector3(0, distance * cos(tilt), distance * sin(tilt))
 	_camera.look_at(_target(), Vector3.FORWARD)
 	_roll(e)
+	_pose_enemy(e)
 
 # The ship rolls and heaves a little about the middle of the deck, fading in with the tilt, so it holds
 # dead still while the view lines up with the 2D. Only the 3D moves: the 2D game never knows.
@@ -236,6 +238,12 @@ func _roll(amount: float) -> void:
 	var pivot := Vector3(_deck_rect().get_center().x, 0, _deck_rect().get_center().y)
 	var heave := Vector3(0, sin(t * 0.9) * HEAVE * amount, 0)
 	_ship.transform = Transform3D(basis, pivot - basis * pivot + heave) if amount > 0.0 else Transform3D.IDENTITY
+
+# The enemy rolls on its own swell, fading in with the tilt like ours.
+func _pose_enemy(amount: float) -> void:
+	var foe := mirror_of(enemy) as EnemyModel
+	if foe:
+		foe.sway(amount)
 
 func _apply(b: float) -> void:
 	_blend = b
@@ -710,8 +718,15 @@ func _sync() -> void:
 		m.position.y = HELD_HEIGHT if item.held else 0.0
 		(m.get_child(0) as MeshInstance3D).material_override.albedo_color = ITEM_COLORS.get(item.kind, Color.WHITE)
 	if enemy:
-		_place(enemy, func(): return _box(Vector3(16, 1.6, 4), Color(0.17, 0.1, 0.07)), _world)
+		var foe: EnemyModel = _place(enemy, func(): return _enemy_mirror(), _world)
+		foe.position.z -= ENEMY_STANDOFF
+		foe.show_hull(enemy.hull_hp / enemy.max_hull_hp)
 	_sync_flames()
+
+func _enemy_mirror() -> EnemyModel:
+	var foe := EnemyModel.new(_plank_material(FLOOR_COLOR))
+	enemy.fired.connect(foe.fire)
+	return foe
 
 func _place(node: Node2D, make: Callable, parent: Node3D = null) -> Node3D:
 	var m: Node3D = _mirrors.get(node)
