@@ -187,3 +187,21 @@ func test_shrouds_come_down_on_the_rail_clear_of_the_gun_ports() -> void:
 		assert_float(foot.y).is_equal_approx(View3D.BULWARK_HEIGHT, 0.1)
 		for gap in view.bulwark_gaps():
 			assert_float(gap.distance_to(at)).override_failure_message("shroud at %s comes down in a gun port" % foot).is_greater(0.4)
+
+func test_a_lantern_at_every_gangway_post_and_mast() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	var dresser := view.dresser()
+	var spots: Array[Vector3] = []
+	for post in dresser.gangway_posts():
+		spots.append(view.cell_centre(post.cell) + Vector3(post.side.x, 0, post.side.y) * 0.4)
+	for cell in dresser.masts():
+		spots.append(view.cell_centre(cell))
+	var lights := view.lanterns()
+	assert_int(lights.size()).is_equal(spots.size())
+	for spot in spots:
+		assert_bool(lights.any(func(l): return Vector2(l.position.x - spot.x, l.position.z - spot.z).length() < 0.6)) \
+			.override_failure_message("no lantern by %s" % spot).is_true()
+	for light in lights:
+		assert_bool(light.shadow_enabled).is_false()

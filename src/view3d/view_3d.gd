@@ -22,6 +22,9 @@ const BULWARK_PAINT := Color(0.6, 0.16, 0.12)   # inboard face
 const RAIL_COLOR := Color(0.3, 0.19, 0.11)
 const QUARTERDECK_HEIGHT := 0.45
 const ROPE_COLOR := Color(0.16, 0.1, 0.06)
+const LANTERN_COLOR := Color(1.0, 0.65, 0.35)
+const LANTERN_ENERGY := 1.0
+const LANTERN_RANGE := 7.0
 const BALUSTER_COLOR := Color(0.72, 0.53, 0.26)
 const ROOM_COLORS := {
 	"magazine": Color(0.49, 0.29, 0.23),
@@ -66,6 +69,8 @@ var _quarterdeck_start := INF       # x in metres; everything aft of it is one s
 var _quarterdeck_column := 0
 var _dresser: DeckDresser
 var _shroud_feet := PackedVector3Array()
+var _lanterns: Array[OmniLight3D] = []
+var _lantern_glass: StandardMaterial3D
 var _floor_count := 0
 var _mirrors := {}   # 2D node -> its 3D stand-in
 var _flames: Array[MeshInstance3D] = []
@@ -88,6 +93,7 @@ func _ready() -> void:
 	_build_quarterdeck()
 	_build_deck()
 	_build_rigging()
+	_build_lanterns()
 	_sleep()
 
 func _process(_delta: float) -> void:
@@ -218,6 +224,9 @@ func bulwark_gaps() -> PackedVector2Array:
 func quarterdeck_start() -> float:
 	return _quarterdeck_start
 
+func lanterns() -> Array[OmniLight3D]:
+	return _lanterns
+
 func shroud_feet() -> PackedVector3Array:
 	return _shroud_feet
 
@@ -229,6 +238,9 @@ func floor_count() -> int:
 
 func to_3d(point: Vector2) -> Vector3:
 	return Vector3(point.x / PX_PER_M, 0.0, point.y / PX_PER_M)
+
+func cell_centre(cell: Vector2i) -> Vector3:
+	return to_3d(hull.to_global(hull.map_to_local(cell)))
 
 # The hull, from the tiles' bounding box: straight sides, rounded stern corners and a bow that runs
 # forward of the first column. The deck is its top, planked out to the edge.
@@ -416,7 +428,7 @@ func _build_deck() -> void:
 	var floor_colors: Array[Color] = []
 	for cell in hull.get_used_cells():
 		var data := hull.get_cell_tile_data(cell)
-		var at := to_3d(hull.to_global(hull.map_to_local(cell)))
+		var at := cell_centre(cell)
 		if data.get_collision_polygons_count(0) == 0:
 			floors.append(Transform3D(Basis(), at))
 			floor_colors.append(ROOM_COLORS.get(data.get_custom_data("room"), FLOOR_COLOR))
@@ -427,7 +439,7 @@ func _build_deck() -> void:
 	floor.material_override.vertex_color_use_as_albedo = true
 	floor.material_override.vertex_color_is_srgb = true
 	_world.add_child(floor)
-	_dresser = DeckDresser.new(hull, _quarterdeck_column, func(cell): return to_3d(hull.to_global(hull.map_to_local(cell))))
+	_dresser = DeckDresser.new(hull, _quarterdeck_column, cell_centre)
 	var dressing := MeshInstance3D.new()
 	dressing.mesh = _dresser.mesh()
 	_world.add_child(dressing)
@@ -439,7 +451,7 @@ func _build_rigging() -> void:
 	var r := _deck_rect()
 	var st := MeshKit.begin()
 	for cell in _dresser.masts():
-		var mast := to_3d(hull.to_global(hull.map_to_local(cell)))
+		var mast := cell_centre(cell)
 		for side: float in [-1.0, 1.0]:
 			var rail_z := (r.position.y - 0.25) if side < 0 else (r.end.y + 0.25)
 			var top := mast + Vector3(0, DeckDresser.TOP_HEIGHT - 0.05, side * 0.2)
@@ -462,6 +474,45 @@ func _build_rigging() -> void:
 	var rigging := MeshInstance3D.new()
 	rigging.mesh = MeshKit.commit(st)
 	_world.add_child(rigging)
+
+# A lantern on a bracket at every gangway post, hung on the passage side, and one on each mast. Each
+# has its own light, without shadows; the glass glows.
+func _build_lanterns() -> void:
+	var frames := MeshKit.begin()
+	var glass := MeshKit.begin()
+	var hang := func(at: Vector3, bracket_from: Vector3) -> void:
+		MeshKit.strut(frames, bracket_from, at + Vector3(0, 0.36, 0), 0.04, DeckDresser.BLACK)
+		MeshKit.cylinder(frames, at + Vector3(0, -0.16, 0), 0.1, 0.04, 8, DeckDresser.BLACK)
+		MeshKit.lathe(frames, at + Vector3(0, 0.12, 0), PackedVector2Array([Vector2(0.12, 0), Vector2(0, 0.2)]), 8, DeckDresser.BLACK)
+		MeshKit.lathe(glass, at + Vector3(0, -0.12, 0), PackedVector2Array([Vector2(0.08, 0), Vector2(0.1, 0.12), Vector2(0.08, 0.24)]), 8, Color.WHITE)
+		var light := OmniLight3D.new()
+		light.position = at
+		light.light_color = LANTERN_COLOR
+		light.light_energy = LANTERN_ENERGY
+		light.omni_range = LANTERN_RANGE
+		light.shadow_enabled = false
+		_world.add_child(light)
+		_lanterns.append(light)
+	for post in _dresser.gangway_posts():
+		var foot := cell_centre(post.cell) + Vector3(post.side.x, 0, post.side.y) * 0.4
+		var out := -_dresser.facing_of(post.cell)   # towards the passage
+		hang.call(foot + Vector3(out.x, 0, out.y) * 0.22 + Vector3(0, 0.95, 0), foot + Vector3(0, 1.3, 0))
+	for cell in _dresser.masts():
+		var mast := cell_centre(cell)
+		hang.call(mast + Vector3(0.4, 1.95, 0), mast + Vector3(0.2, 2.3, 0))
+	var frame_mesh := MeshInstance3D.new()
+	frame_mesh.mesh = MeshKit.commit(frames)
+	_world.add_child(frame_mesh)
+	_lantern_glass = StandardMaterial3D.new()
+	_lantern_glass.albedo_color = LANTERN_COLOR
+	_lantern_glass.emission_enabled = true
+	_lantern_glass.emission = LANTERN_COLOR
+	_lantern_glass.emission_energy_multiplier = 2.0
+	var glass_mesh := MeshInstance3D.new()
+	glass_mesh.mesh = glass.commit()
+	glass_mesh.material_override = _lantern_glass
+	glass_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_world.add_child(glass_mesh)
 
 func _multimesh(mesh: Mesh, at: Array[Transform3D], colors: Array[Color], tint: Color) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new()
