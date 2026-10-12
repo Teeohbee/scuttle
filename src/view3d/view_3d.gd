@@ -12,7 +12,6 @@ const ROLL := 0.012   # radians, side to side; pitch is 70% of it
 const HEAVE := 0.08   # metres
 const RENDER_SCALE := 1.0   # the 3D's resolution as a share of the window's: lower is chunkier and cheaper
 const HELD_HEIGHT := 1.65   # carried items ride above the monkey's hat
-const ENEMY_SHIFT := Vector3(-11.0, 0, -0.8)  # at the game angle: off our bow, out from under the HUD's hull bar
 const SWITCH_TIME := 1.2
 const FADE_SHARE := 0.3          # first 30% of the switch is the crossfade
 const FLAT_FOV := 10.0           # horizontal, degrees: narrow enough to look flat
@@ -239,14 +238,10 @@ func _roll(amount: float) -> void:
 	var heave := Vector3(0, sin(t * 0.9) * HEAVE * amount, 0)
 	_ship.transform = Transform3D(basis, pivot - basis * pivot + heave) if amount > 0.0 else Transform3D.IDENTITY
 
-# The enemy lines up with its 2D sprite in the flat view, then slides off our bow as the view tilts,
-# rolling on its own swell.
+# The enemy rolls on its own swell, fading in with the tilt like ours.
 func _pose_enemy(amount: float) -> void:
 	var foe := mirror_of(enemy) as EnemyModel
 	if foe:
-		var at := to_3d(enemy.global_position) + ENEMY_SHIFT * amount
-		foe.position.x = at.x
-		foe.position.z = at.z
 		foe.sway(amount)
 
 func _apply(b: float) -> void:
