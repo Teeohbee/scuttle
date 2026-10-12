@@ -101,3 +101,29 @@ func test_bananas_hang_from_the_mainmast_top_clear_of_the_rigging() -> void:
 		assert_float(near.distance_to(bunch)).override_failure_message("the bananas foul a shroud").is_greater(0.3)
 	for light in view.lanterns():
 		assert_float(light.global_position.distance_to(bunch)).override_failure_message("the bananas crowd a lantern").is_greater(0.5)
+
+func _room_at(view: View3D, p: Vector3) -> String:
+	var data := view.hull.get_cell_tile_data(view.hull.local_to_map(view.hull.to_local(Vector2(p.x, p.z) * View3D.PX_PER_M)))
+	return data.get_custom_data("room") if data else ""
+
+func test_puddles_lie_in_the_pump_room_clear_of_the_pump() -> void:
+	var view: View3D = await _view()
+	var pump: Pump = view.get_tree().get_nodes_in_group("stations").filter(func(s): return s is Pump)[0]
+	var at := view.to_3d(pump.global_position)
+	var puddles := view.clutter().puddles()
+	assert_int(puddles.size()).is_equal(3)
+	for p in puddles:
+		assert_str(_room_at(view, p)).override_failure_message("a puddle outside the pump room at %s" % p).is_equal(_room_at(view, at))
+		assert_float(Vector2(p.x, p.z).distance_to(Vector2(at.x, at.z))).override_failure_message("a puddle under the pump").is_greater(1.0)
+
+func test_every_gun_has_tracks_worn_inboard_along_its_recoil() -> void:
+	var view: View3D = await _view()
+	var mid := view.deck_rect().get_center().y
+	var guns := view.get_tree().get_nodes_in_group("stations").filter(func(s): return "phase" in s)
+	var scuffs := view.clutter().scuffs()
+	assert_int(scuffs.size()).is_equal(guns.size())
+	for g in guns:
+		var gun := view.to_3d(g.global_position)
+		var mine := Array(scuffs).filter(func(s): return absf(s.x - gun.x) < 0.05 and signf(s.z - mid) == signf(gun.z - mid))
+		assert_int(mine.size()).override_failure_message("the gun at %s has no tracks" % gun).is_equal(1)
+		assert_float(absf(mine[0].z - mid)).override_failure_message("the tracks at %s aren't inboard" % gun).is_less(absf(gun.z - mid))

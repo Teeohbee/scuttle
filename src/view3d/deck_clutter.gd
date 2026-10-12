@@ -9,11 +9,14 @@ const HAMMOCK_LENGTH := 0.55
 const HAMMOCK_GAP := 0.05
 const RAIL_TOP := View3D.BULWARK_HEIGHT + 0.07
 const BANANA := Color("e8c040")
+const PUDDLE := Color(0.29, 0.42, 0.5, 0.55)
 
 var _hammocks: Array[Vector3] = []
 var _windlass := AABB()
 var _stores: Array[Vector3] = []
 var _bananas := Vector3.INF
+var _puddles: Array[Vector3] = []
+var _scuffs: Array[Vector3] = []
 
 func _init(view: View3D) -> void:
 	var st := MeshKit.begin()
@@ -21,7 +24,9 @@ func _init(view: View3D) -> void:
 	_fit_out_the_bow(st, view)
 	_stow_the_quarterdeck(st, view)
 	_hang_bananas(st, view)
+	_scuff_the_guns(st, view)
 	mesh = MeshKit.commit(st)
+	_splash_the_pump_room(view)
 
 # The middle of every rolled hammock.
 func hammocks() -> Array[Vector3]:
@@ -38,6 +43,14 @@ func stores() -> Array[Vector3]:
 # The middle of the bunch hung under the mainmast top.
 func bananas() -> Vector3:
 	return _bananas
+
+# The middle of each puddle in the pump room.
+func puddles() -> Array[Vector3]:
+	return _puddles
+
+# The middle of each gun's wheel tracks.
+func scuffs() -> Array[Vector3]:
+	return _scuffs
 
 # Where the rats run: along the tops of the hammocks.
 static func hammock_top() -> float:
@@ -151,3 +164,52 @@ static func _bunch(st: SurfaceTool, at: Vector3, size := 1.0) -> void:
 static func _coil(st: SurfaceTool, at: Vector3, radius: float) -> void:
 	for k in 3:
 		MeshKit.torus(st, at + Vector3(0, 0.035 + k * 0.045, 0), radius * (1.0 - k * 0.25), 0.035, DeckDresser.ROPE, Basis.IDENTITY, 12)
+
+# Pale tracks worn into the deck by each gun's trucks as it recoils inboard: flat, so the walkway
+# still reads as open.
+func _scuff_the_guns(st: SurfaceTool, view: View3D) -> void:
+	var mid := view.deck_rect().get_center().y
+	var worn := View3D.FLOOR_COLOR.lightened(0.3)
+	for s in view.get_tree().get_nodes_in_group("stations"):
+		if not "phase" in s:
+			continue
+		var gun := view.to_3d(s.global_position)
+		var inboard := signf(mid - gun.z)
+		var centre := gun + Vector3(0, 0.006, inboard * 0.85)
+		for x in [-0.3, 0.3]:
+			MeshKit.box(st, centre + Vector3(x, 0, 0), Vector3(0.08, 0.004, 1.0), worn)
+		_scuffs.append(centre)
+
+# Puddles slopped from the pump: a few glossy slicks on the pump room floor, clear of the pump.
+# They're a surface of their own, so they can shine.
+func _splash_the_pump_room(view: View3D) -> void:
+	var pump: Node2D = null
+	for s in view.get_tree().get_nodes_in_group("stations"):
+		if s is Pump:
+			pump = s
+	if pump == null:
+		return
+	var hull := view.hull
+	var at := view.to_3d(pump.global_position)
+	var room: String = hull.get_cell_tile_data(hull.local_to_map(hull.to_local(pump.global_position))).get_custom_data("room")
+	var cells: Array[Vector2i] = []
+	for cell in hull.get_used_cells():
+		var data := hull.get_cell_tile_data(cell)
+		if data.get_collision_polygons_count(0) == 0 and data.get_custom_data("room") == room \
+				and view.cell_centre(cell).distance_to(at) > 1.2:
+			cells.append(cell)
+	cells.sort()
+	var st := MeshKit.begin()
+	for k in mini(3, cells.size()):
+		var cell := cells[(k * 7 + 2) % cells.size()]
+		var centre := view.cell_centre(cell) + Vector3(0.15 * (k - 1), 0.008, 0.1 * (1 - k))
+		MeshKit.cylinder(st, centre, 0.32 + 0.08 * k, 0.004, 14, PUDDLE, Basis.from_scale(Vector3(1, 1, 0.6)))
+		_puddles.append(centre)
+	var slick := StandardMaterial3D.new()
+	slick.vertex_color_use_as_albedo = true
+	slick.vertex_color_is_srgb = true
+	slick.roughness = 0.08
+	slick.metallic_specular = 0.9
+	slick.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	st.commit(mesh)
+	mesh.surface_set_material(mesh.get_surface_count() - 1, slick)
