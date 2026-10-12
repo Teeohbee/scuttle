@@ -169,5 +169,7 @@ func test_cannon_lamp_shows_its_phase() -> void:
 	await frames(2)
 	var cannon := deck.get_node("CannonPortFore")
 	cannon.phase = cannon.Phase.RUN_OUT
-	await frames(2)
+	# the lamp follows in _process, and after a slow frame physics can step twice without one between
+	await get_tree().process_frame
+	await get_tree().process_frame
 	assert_that(_view(deck).lamp_color(cannon)).is_equal(cannon.PHASE_COLORS[cannon.Phase.RUN_OUT])
