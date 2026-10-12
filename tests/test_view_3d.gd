@@ -280,3 +280,14 @@ func test_3d_renders_at_the_window_resolution() -> void:
 	assert_float(float(view.render_size().x)).is_greater(game_size.x)
 	assert_vector(view.drawn_size()).is_equal_approx(game_size, Vector2(0.5, 0.5))
 	window.size = was
+
+func test_rooms_are_only_a_faint_wash_on_one_planked_deck() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	for room in View3D.ROOM_COLORS:
+		var tint := view.floor_tint(room)
+		assert_that(tint).override_failure_message("%s looks like plain deck" % room).is_not_equal(View3D.FLOOR_COLOR)
+		var off := Vector3(tint.r - View3D.FLOOR_COLOR.r, tint.g - View3D.FLOOR_COLOR.g, tint.b - View3D.FLOOR_COLOR.b).length()
+		assert_float(off).override_failure_message("%s is more than a faint wash" % room).is_less(0.06)
+	assert_that(view.floor_tint("")).is_equal(View3D.FLOOR_COLOR)

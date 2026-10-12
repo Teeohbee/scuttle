@@ -15,7 +15,8 @@ const FADE_SHARE := 0.3          # first 30% of the switch is the crossfade
 const FLAT_FOV := 10.0           # horizontal, degrees: narrow enough to look flat
 const GAME_FOV := 50.0
 const GAME_TILT := deg_to_rad(31.0)
-const FLOOR_COLOR := Color(0.48, 0.34, 0.22)
+const FLOOR_COLOR := Color(0.62, 0.43, 0.27)
+const PLANK_TILE := 8.0   # metres of deck one plank texture covers
 const HULL_COLOR := Color(0.29, 0.17, 0.11)
 const HULL_DEPTH := 2.2
 const BULWARK_HEIGHT := 0.9
@@ -42,6 +43,7 @@ const FIRE_LIGHT_COLOR := Color(1.0, 0.48, 0.16)
 const FIRE_LIGHT_ENERGY := 2.4
 const FIRE_LIGHT_RANGE := 5.0
 const BALUSTER_COLOR := Color(0.72, 0.53, 0.26)
+const ROOM_WASH := 0.15  # how much of its colour a room's floor takes on: enough to learn the map, no more
 const ROOM_COLORS := {
 	"magazine": Color(0.49, 0.29, 0.23),
 	"shotLocker": Color(0.44, 0.42, 0.40),
@@ -472,27 +474,49 @@ func _slab(outline: PackedVector2Array, bottom: float, top: float, sides: Materi
 	node.set_surface_override_material(1, cap)
 	return node
 
-# Planks run fore and aft, four to the metre, mapped in world space so every surface lines up.
+# Planks run fore and aft, four to the metre, mapped in world space so every surface lines up. One
+# texture covers 8 m square, so the butt joints and the plank-to-plank variation don't visibly repeat.
 func _plank_material(tint: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = tint
 	m.albedo_texture = _planks()
 	m.uv1_triplanar = true
 	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3.ONE / PLANK_TILE
+	m.roughness = 0.9
 	return m
 
+# Grey-scale, so the material's tint gives the colour: planks of varied length and shade, a light
+# grain line and a dark one along each, black seams, and a pair of trenails at every butt joint.
 func _planks() -> ImageTexture:
 	if _plank_texture:
 		return _plank_texture
-	var img := Image.create(64, 64, false, Image.FORMAT_RGB8)
-	for row in 4:
-		var shade := 0.88 + 0.04 * (row * 7 % 4)
-		img.fill_rect(Rect2i(0, row * 16, 64, 16), Color(shade, shade, shade))
-		img.fill_rect(Rect2i(0, row * 16 + 15, 64, 1), Color(0.45, 0.45, 0.45))     # seam
-		img.fill_rect(Rect2i((row * 37) % 60, row * 16, 2, 15), Color(0.55, 0.55, 0.55))   # butt joint
+	var px := 64   # per metre
+	var size := int(PLANK_TILE * px)
+	var img := Image.create(size, size, false, Image.FORMAT_RGB8)
+	img.fill(Color(0.2, 0.2, 0.2))
+	var rows := size / 16
+	for r in rows:
+		var x := -((r * 53) % 160)
+		while x < size:
+			var length := px * (2 + ((x * 3 + r * 11) & 3))
+			var shade := 0.78 + ((x * 7 + r * 13) % 11) * 0.022
+			var plank := Rect2i(x, r * 16, length, 16).intersection(Rect2i(0, 0, size, size))
+			img.fill_rect(plank, Color(shade, shade, shade))
+			img.fill_rect(Rect2i(plank.position.x, r * 16 + 4 + posmod(x, 5), plank.size.x, 1), Color(shade + 0.06, shade + 0.06, shade + 0.06))
+			img.fill_rect(Rect2i(plank.position.x, r * 16 + 10 - posmod(x, 3), plank.size.x, 1), Color(shade - 0.1, shade - 0.1, shade - 0.1))
+			if x >= 0:
+				img.fill_rect(Rect2i(x, r * 16, 2, 16), Color(0.12, 0.12, 0.12))
+				for y in [4, 10]:
+					img.fill_rect(Rect2i(x + 5, r * 16 + y, 2, 2), Color(0.18, 0.18, 0.18))
+			x += length
+		img.fill_rect(Rect2i(0, r * 16 + 15, size, 1), Color(0.14, 0.14, 0.14))
 	img.generate_mipmaps()
 	_plank_texture = ImageTexture.create_from_image(img)
 	return _plank_texture
+
+func floor_tint(room: String) -> Color:
+	return FLOOR_COLOR.lerp(ROOM_COLORS.get(room, FLOOR_COLOR), ROOM_WASH)
 
 # The floor tiles, tinted by their room, in one MultiMesh. There are no walls: the dresser turns
 # each wall tile into cargo, a divider or a bitt.
@@ -504,7 +528,7 @@ func _build_deck() -> void:
 		var at := cell_centre(cell)
 		if data.get_collision_polygons_count(0) == 0:
 			floors.append(Transform3D(Basis(), at))
-			floor_colors.append(ROOM_COLORS.get(data.get_custom_data("room"), FLOOR_COLOR))
+			floor_colors.append(floor_tint(data.get_custom_data("room")))
 	var tile := PlaneMesh.new()
 	tile.size = Vector2(1, 1)
 	var floor := _multimesh(tile, floors, floor_colors, Color.WHITE)
