@@ -8,3 +8,11 @@
 
 # Bot playtest output
 /_playtest/results/
+
+# Addons are installed by gd-plug (see plug.gd), only gd-plug itself is tracked
+.plugged/
+addons/*
+!addons/gd-plug/
+
+# gdUnit4 test reports
+/reports/
