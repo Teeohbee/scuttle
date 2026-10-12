@@ -79,6 +79,7 @@ var _wales: Array[float] = []
 var _port_lids := PackedVector3Array()
 var _channels: Array[Rect2] = []
 var _exterior: MeshInstance3D
+var _clutter: DeckClutter
 var _lanterns: Array[OmniLight3D] = []
 var _lantern_glass: StandardMaterial3D
 var _night := false
@@ -114,6 +115,8 @@ func _ready() -> void:
 	_build_deck()
 	_build_rigging()
 	_build_exterior()
+	_clutter = DeckClutter.new(self)
+	_ship.add_child(_clutter)
 	_build_lanterns()
 	_life = DeckLife.new(self)
 	_ship.add_child(_life)
@@ -341,6 +344,28 @@ func channels() -> Array[Rect2]:
 
 func hull_exterior() -> MeshInstance3D:
 	return _exterior
+
+func clutter() -> DeckClutter:
+	return _clutter
+
+# The straight runs of bulwark rail, port and starboard, between the gun ports: (x from, x to, z).
+func rail_runs() -> Array[Vector3]:
+	var r := _deck_rect()
+	var runs: Array[Vector3] = []
+	for z in [r.position.y - 0.25, r.end.y + 0.25]:
+		var cuts: Array[float] = []
+		for gap in _gaps:
+			if absf(gap.y - z) < 0.5:
+				cuts.append(gap.x)
+		cuts.sort()
+		var from := r.position.x + 2.2
+		for x in cuts:
+			if x - 0.65 > from + 1.0:
+				runs.append(Vector3(from, x - 0.65, z))
+			from = maxf(from, x + 0.65)
+		if r.end.x - 1.0 > from + 1.0:
+			runs.append(Vector3(from, r.end.x - 1.0, z))
+	return runs
 
 func shroud_feet() -> PackedVector3Array:
 	return _shroud_feet
