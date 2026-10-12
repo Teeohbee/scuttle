@@ -99,7 +99,7 @@ func test_one_flame_per_burning_cell() -> void:
 	var fire: FireHazard = deck.get_node("Fire")
 	fire.ignite_random()
 	fire.ignite_random()
-	await frames(2)
+	await drawn_frames(2)
 	assert_array(fire.burning_cells()).is_not_empty()
 	assert_int(view.flame_count()).is_equal(fire.burning_cells().size())
 	var cell: Vector2i = fire.burning_cells()[0]
@@ -165,9 +165,7 @@ func test_cannon_lamp_shows_its_phase() -> void:
 	await frames(2)
 	var cannon := deck.get_node("CannonPortFore")
 	cannon.phase = cannon.Phase.RUN_OUT
-	# the lamp follows in _process, and after a slow frame physics can step twice without one between
-	await get_tree().process_frame
-	await get_tree().process_frame
+	await drawn_frames(2)
 	assert_that(_view(deck).lamp_color(cannon)).is_equal(cannon.PHASE_COLORS[cannon.Phase.RUN_OUT])
 
 func test_shrouds_come_down_on_the_rail_clear_of_the_gun_ports() -> void:
