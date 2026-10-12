@@ -20,3 +20,9 @@ func load_deck(bots := 2) -> Node2D:
 func frames(n: int) -> void:
 	for i in n:
 		await get_tree().physics_frame
+
+# The 3D view follows the deck in _process, and after a slow frame physics can step twice without a
+# _process between, so wait for drawn frames before reading what the 3D shows.
+func drawn_frames(n: int) -> void:
+	for i in n:
+		await get_tree().process_frame
