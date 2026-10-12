@@ -169,3 +169,62 @@ func test_cannon_lamp_shows_its_phase() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	assert_that(_view(deck).lamp_color(cannon)).is_equal(cannon.PHASE_COLORS[cannon.Phase.RUN_OUT])
+
+func test_shrouds_come_down_on_the_rail_clear_of_the_gun_ports() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	var ends := view.shroud_feet()
+	assert_int(ends.size()).is_greater_equal(view.dresser().masts().size() * 2 * 3)   # three a side at least
+	var outline := view.hull_outline()
+	for foot in ends:
+		var at := Vector2(foot.x, foot.z)
+		var nearest := INF
+		for i in outline.size():
+			var edge := Geometry2D.get_closest_point_to_segment(at, outline[i], outline[(i + 1) % outline.size()])
+			nearest = minf(nearest, edge.distance_to(at))
+		assert_float(nearest).override_failure_message("shroud at %s isn't on the rail" % foot).is_less(0.3)
+		assert_float(foot.y).is_equal_approx(View3D.BULWARK_HEIGHT, 0.1)
+		for gap in view.bulwark_gaps():
+			assert_float(gap.distance_to(at)).override_failure_message("shroud at %s comes down in a gun port" % foot).is_greater(0.4)
+
+func test_a_lantern_at_every_gangway_post_and_mast() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	var dresser := view.dresser()
+	var spots: Array[Vector3] = []
+	for post in dresser.gangway_posts():
+		spots.append(view.cell_centre(post.cell) + Vector3(post.side.x, 0, post.side.y) * 0.4)
+	for cell in dresser.masts():
+		spots.append(view.cell_centre(cell))
+	var lights := view.lanterns()
+	assert_int(lights.size()).is_equal(spots.size())
+	for spot in spots:
+		assert_bool(lights.any(func(l): return Vector2(l.position.x - spot.x, l.position.z - spot.z).length() < 0.6)) \
+			.override_failure_message("no lantern by %s" % spot).is_true()
+	for light in lights:
+		assert_bool(light.shadow_enabled).is_false()
+
+func test_afternoon_by_default_with_the_lanterns_unlit() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	assert_bool(view.is_night()).is_false()
+	for light in view.lanterns():
+		assert_float(light.light_energy).is_equal(0.0)
+
+func test_night_lights_the_lanterns_and_darkens_the_sky() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	assert_bool(InputMap.has_action("toggle_mood")).is_true()
+	var day_sky := view.sky_color()
+	view.toggle_mood()
+	assert_bool(view.is_night()).is_true()
+	assert_float(view.sky_color().get_luminance()).is_less(day_sky.get_luminance())
+	for light in view.lanterns():
+		assert_float(light.light_energy).is_greater(0.0)
+	view.toggle_mood()
+	assert_bool(view.is_night()).is_false()
+	assert_that(view.sky_color()).is_equal(day_sky)

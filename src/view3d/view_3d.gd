@@ -21,6 +21,16 @@ const BULWARK_COLOR := Color(0.42, 0.27, 0.16)
 const BULWARK_PAINT := Color(0.6, 0.16, 0.12)   # inboard face
 const RAIL_COLOR := Color(0.3, 0.19, 0.11)
 const QUARTERDECK_HEIGHT := 0.45
+const ROPE_COLOR := Color(0.16, 0.1, 0.06)
+const LANTERN_COLOR := Color(1.0, 0.65, 0.35)
+const LANTERN_ENERGY := 1.0
+const LANTERN_RANGE := 7.0
+# Two moods. The afternoon is the default; lantern light is behind toggle_mood (N). At night the
+# lanterns are dim and warm, so the fire stays the brightest thing on deck.
+const DAY := {sky = Color(0.1, 0.25, 0.36), sea = Color(0.12, 0.33, 0.48), sun = Color.WHITE, sun_energy = 0.9,
+	ambient = Color(0.55, 0.62, 0.75), ambient_energy = 0.3, lanterns = false}
+const NIGHT := {sky = Color(0.027, 0.063, 0.11), sea = Color(0.043, 0.118, 0.188), sun = Color(0.66, 0.74, 0.91), sun_energy = 0.35,
+	ambient = Color(0.25, 0.31, 0.48), ambient_energy = 0.4, lanterns = true}
 const BALUSTER_COLOR := Color(0.72, 0.53, 0.26)
 const ROOM_COLORS := {
 	"magazine": Color(0.49, 0.29, 0.23),
@@ -64,6 +74,13 @@ var _gaps := PackedVector2Array()   # gun ports in the bulwark, (x, z) in metres
 var _quarterdeck_start := INF       # x in metres; everything aft of it is one step up
 var _quarterdeck_column := 0
 var _dresser: DeckDresser
+var _shroud_feet := PackedVector3Array()
+var _lanterns: Array[OmniLight3D] = []
+var _lantern_glass: StandardMaterial3D
+var _night := false
+var _sun: DirectionalLight3D
+var _env: Environment
+var _sea: StandardMaterial3D
 var _floor_count := 0
 var _mirrors := {}   # 2D node -> its 3D stand-in
 var _flames: Array[MeshInstance3D] = []
@@ -85,6 +102,9 @@ func _ready() -> void:
 	_build_bulwark()
 	_build_quarterdeck()
 	_build_deck()
+	_build_rigging()
+	_build_lanterns()
+	_set_mood(DAY)
 	_sleep()
 
 func _process(_delta: float) -> void:
@@ -94,6 +114,8 @@ func _process(_delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_view"):
 		toggle()
+	elif event.is_action_pressed("toggle_mood"):
+		toggle_mood()
 
 func toggle() -> void:
 	set_3d(not is_3d)
@@ -114,6 +136,27 @@ func set_3d(on: bool, animate := true) -> void:
 	_tween.tween_method(_apply, _blend, goal, SWITCH_TIME * absf(goal - _blend))
 	if not on:
 		_tween.tween_callback(_sleep)
+
+func toggle_mood() -> void:
+	_night = not _night
+	_set_mood(NIGHT if _night else DAY)
+
+func is_night() -> bool:
+	return _night
+
+func sky_color() -> Color:
+	return _env.background_color
+
+func _set_mood(mood: Dictionary) -> void:
+	_env.background_color = mood.sky
+	_env.ambient_light_color = mood.ambient
+	_env.ambient_light_energy = mood.ambient_energy
+	_sun.light_color = mood.sun
+	_sun.light_energy = mood.sun_energy
+	_sea.albedo_color = mood.sea
+	for light in _lanterns:
+		light.light_energy = LANTERN_ENERGY if mood.lanterns else 0.0
+	_lantern_glass.emission_enabled = mood.lanterns
 
 func blend() -> float:
 	return _blend
@@ -173,25 +216,23 @@ func _build_stage() -> void:
 	_camera = Camera3D.new()
 	_camera.keep_aspect = Camera3D.KEEP_WIDTH
 	_world.add_child(_camera)
-	var sun := DirectionalLight3D.new()
-	sun.rotation = Vector3(deg_to_rad(-55), deg_to_rad(-30), 0)
-	sun.light_energy = 0.9
-	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 300.0
-	_world.add_child(sun)
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.1, 0.25, 0.36)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.55, 0.62, 0.75)
-	env.ambient_light_energy = 0.3
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	_sun = DirectionalLight3D.new()
+	_sun.rotation = Vector3(deg_to_rad(-55), deg_to_rad(-30), 0)
+	_sun.shadow_enabled = true
+	_sun.directional_shadow_max_distance = 300.0
+	_world.add_child(_sun)
+	_env = Environment.new()
+	_env.background_mode = Environment.BG_COLOR
+	_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	_env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var world_env := WorldEnvironment.new()
-	world_env.environment = env
+	world_env.environment = _env
 	_world.add_child(world_env)
-	var sea := PlaneMesh.new()
-	sea.size = Vector2(400, 400)
-	_world.add_child(_mesh(sea, Vector3(0, -0.8, 0), Color(0.12, 0.33, 0.48)))
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(400, 400)
+	var sea := _mesh(plane, Vector3(0, -0.8, 0), Color.WHITE)
+	_sea = sea.material_override
+	_world.add_child(sea)
 
 func mirror_of(node: Node) -> Node3D:
 	return _mirrors.get(node)
@@ -215,6 +256,12 @@ func bulwark_gaps() -> PackedVector2Array:
 func quarterdeck_start() -> float:
 	return _quarterdeck_start
 
+func lanterns() -> Array[OmniLight3D]:
+	return _lanterns
+
+func shroud_feet() -> PackedVector3Array:
+	return _shroud_feet
+
 func dresser() -> DeckDresser:
 	return _dresser
 
@@ -223,6 +270,9 @@ func floor_count() -> int:
 
 func to_3d(point: Vector2) -> Vector3:
 	return Vector3(point.x / PX_PER_M, 0.0, point.y / PX_PER_M)
+
+func cell_centre(cell: Vector2i) -> Vector3:
+	return to_3d(hull.to_global(hull.map_to_local(cell)))
 
 # The hull, from the tiles' bounding box: straight sides, rounded stern corners and a bow that runs
 # forward of the first column. The deck is its top, planked out to the edge.
@@ -410,7 +460,7 @@ func _build_deck() -> void:
 	var floor_colors: Array[Color] = []
 	for cell in hull.get_used_cells():
 		var data := hull.get_cell_tile_data(cell)
-		var at := to_3d(hull.to_global(hull.map_to_local(cell)))
+		var at := cell_centre(cell)
 		if data.get_collision_polygons_count(0) == 0:
 			floors.append(Transform3D(Basis(), at))
 			floor_colors.append(ROOM_COLORS.get(data.get_custom_data("room"), FLOOR_COLOR))
@@ -421,11 +471,80 @@ func _build_deck() -> void:
 	floor.material_override.vertex_color_use_as_albedo = true
 	floor.material_override.vertex_color_is_srgb = true
 	_world.add_child(floor)
-	_dresser = DeckDresser.new(hull, _quarterdeck_column, func(cell): return to_3d(hull.to_global(hull.map_to_local(cell))))
+	_dresser = DeckDresser.new(hull, _quarterdeck_column, cell_centre)
 	var dressing := MeshInstance3D.new()
 	dressing.mesh = _dresser.mesh()
 	_world.add_child(dressing)
 	_floor_count = floors.size()
+
+# Shrouds from each fighting top down to the rail on both sides, with ratlines across them, and a
+# pin rail inside the bulwark where they come down. A shroud that would land in a gun port is left out.
+func _build_rigging() -> void:
+	var r := _deck_rect()
+	var st := MeshKit.begin()
+	for cell in _dresser.masts():
+		var mast := cell_centre(cell)
+		for side: float in [-1.0, 1.0]:
+			var rail_z := (r.position.y - 0.25) if side < 0 else (r.end.y + 0.25)
+			var top := mast + Vector3(0, DeckDresser.TOP_HEIGHT - 0.05, side * 0.2)
+			var feet: Array[Vector3] = []
+			for j in [-1.5, -0.5, 0.5, 1.5]:
+				var foot := Vector3(mast.x + j * 0.5, BULWARK_HEIGHT + 0.07, rail_z)
+				if _gaps.is_empty() or Array(_gaps).all(func(g): return g.distance_to(Vector2(foot.x, foot.z)) > 0.45):
+					feet.append(foot)
+			for foot in feet:
+				MeshKit.strut(st, top, foot, 0.025, ROPE_COLOR)
+				_shroud_feet.append(foot)
+			var u := 0.12
+			while u < 0.95:   # ratlines: rungs across the shrouds
+				MeshKit.strut(st, top.lerp(feet.front(), u), top.lerp(feet.back(), u), 0.012, ROPE_COLOR)
+				u += 0.1
+			var pin_z := rail_z - side * 0.25
+			MeshKit.box(st, Vector3(mast.x, 0.62, pin_z), Vector3(1.6, 0.08, 0.14), DeckDresser.CAP)
+			for k in 6:
+				MeshKit.cylinder(st, Vector3(mast.x - 0.65 + k * 0.26, 0.62, pin_z), 0.022, 0.2, 5, DeckDresser.LIGHT)
+	var rigging := MeshInstance3D.new()
+	rigging.mesh = MeshKit.commit(st)
+	_world.add_child(rigging)
+
+# A lantern on a bracket at every gangway post, hung on the passage side, and one on each mast. Each
+# has its own light, without shadows; the glass glows.
+func _build_lanterns() -> void:
+	var frames := MeshKit.begin()
+	var glass := MeshKit.begin()
+	var hang := func(at: Vector3, bracket_from: Vector3) -> void:
+		MeshKit.strut(frames, bracket_from, at + Vector3(0, 0.36, 0), 0.04, DeckDresser.BLACK)
+		MeshKit.cylinder(frames, at + Vector3(0, -0.16, 0), 0.1, 0.04, 8, DeckDresser.BLACK)
+		MeshKit.lathe(frames, at + Vector3(0, 0.12, 0), PackedVector2Array([Vector2(0.12, 0), Vector2(0, 0.2)]), 8, DeckDresser.BLACK)
+		MeshKit.lathe(glass, at + Vector3(0, -0.12, 0), PackedVector2Array([Vector2(0.08, 0), Vector2(0.1, 0.12), Vector2(0.08, 0.24)]), 8, Color.WHITE)
+		var light := OmniLight3D.new()
+		light.position = at
+		light.light_color = LANTERN_COLOR
+		light.light_energy = LANTERN_ENERGY
+		light.omni_range = LANTERN_RANGE
+		light.shadow_enabled = false
+		_world.add_child(light)
+		_lanterns.append(light)
+	for post in _dresser.gangway_posts():
+		var foot := cell_centre(post.cell) + Vector3(post.side.x, 0, post.side.y) * 0.4
+		var out := -_dresser.facing_of(post.cell)   # towards the passage
+		hang.call(foot + Vector3(out.x, 0, out.y) * 0.22 + Vector3(0, 0.95, 0), foot + Vector3(0, 1.3, 0))
+	for cell in _dresser.masts():
+		var mast := cell_centre(cell)
+		hang.call(mast + Vector3(0.4, 1.95, 0), mast + Vector3(0.2, 2.3, 0))
+	var frame_mesh := MeshInstance3D.new()
+	frame_mesh.mesh = MeshKit.commit(frames)
+	_world.add_child(frame_mesh)
+	_lantern_glass = StandardMaterial3D.new()
+	_lantern_glass.albedo_color = LANTERN_COLOR
+	_lantern_glass.emission_enabled = true
+	_lantern_glass.emission = LANTERN_COLOR
+	_lantern_glass.emission_energy_multiplier = 2.0
+	var glass_mesh := MeshInstance3D.new()
+	glass_mesh.mesh = glass.commit()
+	glass_mesh.material_override = _lantern_glass
+	glass_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_world.add_child(glass_mesh)
 
 func _multimesh(mesh: Mesh, at: Array[Transform3D], colors: Array[Color], tint: Color) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new()

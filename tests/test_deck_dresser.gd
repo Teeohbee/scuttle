@@ -67,7 +67,7 @@ func test_room_edges_along_the_passage_are_cargo() -> void:
 func test_bitts_only_meet_the_passage() -> void:
 	await _setup()
 	var bitts := _walls().filter(func(c): return _dresser.kind_of(c) == DeckDresser.Kind.BITT)
-	assert_array(bitts).contains([Vector2i(6, 6), Vector2i(15, 6), Vector2i(24, 6)])   # the pillars
+	assert_array(bitts).is_not_empty()
 	for cell in bitts:
 		for d in SIDES:
 			assert_str(_room(cell + d)).override_failure_message("bitt at %s touches a room" % cell).is_empty()
@@ -121,3 +121,12 @@ func test_each_divider_run_is_one_piece_of_deck_furniture() -> void:
 	assert_int(styles.size()).is_equal(3)
 	for column in styles:
 		assert_int(styles[column].size()).override_failure_message("column %d mixes styles" % column).is_equal(1)
+
+func test_the_pillars_are_masts() -> void:
+	await _setup()
+	var pillars := [Vector2i(6, 6), Vector2i(15, 6), Vector2i(24, 6)]
+	assert_array(_dresser.masts()).contains_exactly_in_any_order(pillars)
+	for cell in _walls():
+		var alone := not SIDES.any(func(d): return _is_wall(cell + d))
+		assert_bool(_dresser.kind_of(cell) == DeckDresser.Kind.MAST) \
+			.override_failure_message("%s: a mast is a wall tile standing alone" % cell).is_equal(alone)
