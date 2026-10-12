@@ -31,6 +31,12 @@ const DAY := {sky = Color(0.1, 0.25, 0.36), sea = Color(0.12, 0.33, 0.48), sun =
 	ambient = Color(0.55, 0.62, 0.75), ambient_energy = 0.3, lanterns = false}
 const NIGHT := {sky = Color(0.027, 0.063, 0.11), sea = Color(0.043, 0.118, 0.188), sun = Color(0.66, 0.74, 0.91), sun_energy = 0.35,
 	ambient = Color(0.25, 0.31, 0.48), ambient_energy = 0.4, lanterns = true}
+# Each burning cell lights the deck round it, up to a few lights; flickering, so the fire is the
+# liveliest light on deck, day or night.
+const MAX_FIRE_LIGHTS := 6
+const FIRE_LIGHT_COLOR := Color(1.0, 0.48, 0.16)
+const FIRE_LIGHT_ENERGY := 2.4
+const FIRE_LIGHT_RANGE := 5.0
 const BALUSTER_COLOR := Color(0.72, 0.53, 0.26)
 const ROOM_COLORS := {
 	"magazine": Color(0.49, 0.29, 0.23),
@@ -84,6 +90,7 @@ var _sea: StandardMaterial3D
 var _floor_count := 0
 var _mirrors := {}   # 2D node -> its 3D stand-in
 var _flames: Array[MeshInstance3D] = []
+var _fire_lights: Array[OmniLight3D] = []
 
 func _ready() -> void:
 	_container = SubViewportContainer.new()
@@ -240,6 +247,9 @@ func mirror_of(node: Node) -> Node3D:
 func lamp_color(station: Node) -> Color:
 	var lamp: MeshInstance3D = _mirrors[station].get_node_or_null("Lamp")
 	return lamp.material_override.albedo_color if lamp else Color.BLACK
+
+func fire_lights() -> Array[OmniLight3D]:
+	return _fire_lights
 
 func flame_count() -> int:
 	return _flames.filter(func(f): return f.visible).size()
@@ -621,6 +631,20 @@ func _sync_flames() -> void:
 		_flames[i].visible = i < cells.size()
 		if _flames[i].visible:
 			_flames[i].position = to_3d(fire.world_of(cells[i])) + Vector3(0, 0.4, 0)
+	while _fire_lights.size() < mini(cells.size(), MAX_FIRE_LIGHTS):
+		var light := OmniLight3D.new()
+		light.light_color = FIRE_LIGHT_COLOR
+		light.omni_range = FIRE_LIGHT_RANGE
+		light.shadow_enabled = false
+		_world.add_child(light)
+		_fire_lights.append(light)
+	var t := Time.get_ticks_msec() / 1000.0
+	for i in _fire_lights.size():
+		var light := _fire_lights[i]
+		light.visible = i < cells.size()
+		if light.visible:
+			light.position = to_3d(fire.world_of(cells[i])) + Vector3(0, 1.0, 0)
+			light.light_energy = FIRE_LIGHT_ENERGY * (0.75 + 0.25 * sin(t * 13.0 + i * 2.1) * sin(t * 7.3 + i))
 
 func _station_color(station: Node) -> Color:
 	return STATION_COLORS.get(station.scene_file_path.get_file().get_basename(), Color.GRAY)

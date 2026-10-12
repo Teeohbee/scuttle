@@ -226,3 +226,24 @@ func test_night_lights_the_lanterns_and_darkens_the_sky() -> void:
 	view.toggle_mood()
 	assert_bool(view.is_night()).is_false()
 	assert_that(view.sky_color()).is_equal(day_sky)
+
+func test_fires_cast_a_flickering_light() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	view.set_3d(true, false)
+	var fire: FireHazard = deck.get_node("Fire")
+	assert_array(view.fire_lights().filter(func(l): return l.visible)).is_empty()
+	fire.ignite_random()
+	await drawn_frames(2)
+	var lit := view.fire_lights().filter(func(l): return l.visible)
+	assert_int(lit.size()).is_equal(mini(fire.burning_cells().size(), View3D.MAX_FIRE_LIGHTS))
+	var near_fire := func(l: OmniLight3D) -> bool:
+		return fire.burning_cells().any(func(c): return Vector2(l.position.x, l.position.z).distance_to(
+			Vector2(view.to_3d(fire.world_of(c)).x, view.to_3d(fire.world_of(c)).z)) < 0.1)
+	assert_bool(lit.all(near_fire)).is_true()
+	var energies := {}
+	for i in 10:
+		await drawn_frames(1)
+		energies[snappedf(lit[0].light_energy, 0.01)] = true
+	assert_int(energies.size()).override_failure_message("the fire light doesn't flicker").is_greater(3)
