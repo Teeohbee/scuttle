@@ -311,3 +311,25 @@ func test_at_night_lanterns_glow_but_leave_the_fire_the_brightest_thing_on_deck(
 	var lantern: OmniLight3D = view.lanterns()[0]
 	assert_float(lantern.light_energy * lantern.omni_range).override_failure_message("lantern light floods the deck") \
 		.is_less(View3D.FIRE_LIGHT_ENERGY * View3D.FIRE_LIGHT_RANGE / 4.0)
+
+func test_the_ship_rolls_gently_at_the_game_angle() -> void:
+	var deck := load_deck()
+	var view := _view(deck)
+	view.set_3d(true, false)
+	await drawn_frames(2)
+	var seen := {}
+	for i in 20:
+		await get_tree().create_timer(0.05).timeout
+		var roll := view.ship().rotation
+		assert_float(absf(roll.x) + absf(roll.z)).override_failure_message("that's not a gentle roll").is_less(0.04)
+		seen[snappedf(roll.x, 0.0001)] = true
+	assert_int(seen.size()).override_failure_message("the ship sits dead still").is_greater(3)
+	assert_object(view.mirror_of(deck.get_node("EnemyShip")).get_parent()).override_failure_message("the enemy rolls with us").is_not_same(view.ship())
+
+func test_the_ship_holds_still_while_lined_up_with_the_2d() -> void:
+	var deck := load_deck()
+	var view := _view(deck)
+	view.set_3d(true, false)
+	await drawn_frames(2)
+	view.pose(0.0)
+	assert_that(view.ship().transform).is_equal(Transform3D.IDENTITY)
