@@ -7,6 +7,7 @@ extends RefCounted
 #   DIVIDER  room floor on both opposite sides (drawn as a box for now)
 #   BITT     meets only the passage: a stout post with a coil, filling the tile
 #   NONE     touches no floor, so nobody can reach it: bare deck
+# Where an edge piece meets a doorway off the passage, a tall gangway post frames the way through.
 # Everything is baked into one vertex-coloured mesh.
 
 enum Kind { NONE, EDGE, DIVIDER, BITT }
@@ -30,6 +31,7 @@ var _hull: TileMapLayer
 var _quarterdeck_column: int
 var _centre_of: Callable   # cell -> Vector3, its centre on the deck
 var _pieces := {}          # cell -> {kind, room, facing}
+var _posts: Array[Dictionary] = []   # {cell, side}: a gangway post on that side of an edge tile
 var _mesh: ArrayMesh
 
 func _init(hull: TileMapLayer, quarterdeck_column: int, centre_of: Callable) -> void:
@@ -39,6 +41,11 @@ func _init(hull: TileMapLayer, quarterdeck_column: int, centre_of: Callable) -> 
 	for cell in hull.get_used_cells():
 		if _is_wall(cell) and not is_under_quarterdeck(cell):
 			_pieces[cell] = _classify(cell)
+	for cell: Vector2i in _pieces:
+		if kind_of(cell) == Kind.EDGE:
+			for side in SIDES:
+				if side != facing_of(cell) and side != -facing_of(cell) and _is_floor(cell + side) and _room(cell + side) == "":
+					_posts.append({cell = cell, side = side})
 
 func kind_of(cell: Vector2i) -> Kind:
 	return _pieces.get(cell, {}).get("kind", Kind.NONE)
@@ -48,6 +55,9 @@ func room_of(cell: Vector2i) -> String:
 
 func facing_of(cell: Vector2i) -> Vector2i:
 	return _pieces.get(cell, {}).get("facing", Vector2i.ZERO)
+
+func gangway_posts() -> Array[Dictionary]:
+	return _posts
 
 func is_under_quarterdeck(cell: Vector2i) -> bool:
 	return cell.x >= _quarterdeck_column
@@ -94,6 +104,10 @@ func _build() -> ArrayMesh:
 				MeshKit.box(st, at + Vector3(0, 0.5, 0), Vector3(1, 1, 1), MID)
 			Kind.BITT:
 				_bitt(st, at)
+	for post in _posts:
+		var at: Vector3 = _centre_of.call(post.cell) + Vector3(post.side.x, 0, post.side.y) * 0.4
+		MeshKit.box(st, at + Vector3(0, 0.67, 0), Vector3(0.2, 1.35, 0.2), DARK)
+		MeshKit.box(st, at + Vector3(0, 1.37, 0), Vector3(0.26, 0.06, 0.26), CAP)
 	return MeshKit.commit(st)
 
 # A room's stores along its edge, knee to waist high and filling most of the tile, so it still

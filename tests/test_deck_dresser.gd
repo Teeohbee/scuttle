@@ -78,3 +78,22 @@ func test_dressing_is_one_mesh() -> void:
 	assert_object(mesh).is_not_null()
 	assert_int(mesh.get_surface_count()).is_equal(1)
 	assert_int(mesh.surface_get_array_len(0)).is_greater(1000)
+
+func test_gangway_posts_pair_up_across_each_doorway() -> void:
+	await _setup()
+	var posts := _dresser.gangway_posts()
+	assert_array(posts).is_not_empty()
+	var at := {}
+	for p in posts:
+		at[p.cell] = p.side
+	for p in posts:
+		assert_int(_dresser.kind_of(p.cell)).is_equal(DeckDresser.Kind.EDGE)
+		# walk through the doorway: passage floor all the way to a post facing back
+		var cell: Vector2i = p.cell + p.side
+		assert_bool(_is_floor(cell)).override_failure_message("post at %s faces no doorway" % p.cell).is_true()
+		while _is_floor(cell) and _room(cell) == "":
+			cell += p.side
+		assert_bool(at.get(cell) == -p.side) \
+			.override_failure_message("post at %s has no partner across the doorway" % p.cell).is_true()
+	# the deck has eight doorways off the passage
+	assert_int(posts.size()).is_equal(16)
