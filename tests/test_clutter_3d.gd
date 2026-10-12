@@ -1,8 +1,10 @@
 extends DeckSuite
 # The deck's odds and ends: hammocks on the rail, gear at the bow, stores on the quarterdeck. Nothing
-# solid stands on a tile you can walk on, so in 3D, as in 2D, what you can't walk through is what you see.
+# solid stands on a tile you can walk on, short of hanging well overhead, so in 3D, as in 2D, what you
+# can't walk through is what you see.
 
 const FLAT := 0.02   # metres: as high as anything over a walkable tile may stand
+const OVERHEAD := 3.0   # metres: high enough over the crew's heads that it can't be mistaken for a wall
 
 func _view() -> View3D:
 	var deck := load_deck()
@@ -26,7 +28,7 @@ func test_nothing_stands_on_a_tile_you_can_walk_on() -> void:
 	var vertices := _vertices(view)
 	assert_int(vertices.size()).is_greater(0)
 	for v in vertices:
-		if v.y > FLAT and _walkable(view, v):
+		if v.y > FLAT and v.y < OVERHEAD and _walkable(view, v):
 			fail("clutter stands %.2f m high on a walkable tile at %s" % [v.y, v])
 			return
 
@@ -81,3 +83,21 @@ func test_stores_on_the_quarterdeck_leave_the_helm_clear() -> void:
 		for thing in helm:
 			assert_float(Vector2(at.x, at.z).distance_to(Vector2(thing.x, thing.z))) \
 				.override_failure_message("stores at %s crowd the helm at %s" % [at, thing]).is_greater(1.0)   # half a store's width, then 0.6 m clear
+
+func test_bananas_hang_from_the_mainmast_top_clear_of_the_rigging() -> void:
+	var view: View3D = await _view()
+	var bunch := view.clutter().bananas()
+	var masts := view.dresser().masts()
+	masts.sort()
+	var mast := view.cell_centre(masts[masts.size() / 2])
+	assert_float(Vector2(bunch.x, bunch.z).distance_to(Vector2(mast.x, mast.z))).override_failure_message("the bananas aren't hung off the top") \
+		.is_between(0.5, 1.0)
+	assert_float(bunch.y).override_failure_message("the bananas are too low to clear heads").is_between(OVERHEAD + 0.3, DeckDresser.TOP_HEIGHT)
+	for foot in view.shroud_feet():
+		if absf(foot.x - mast.x) > 1.0:
+			continue
+		var top := mast + Vector3(0, DeckDresser.TOP_HEIGHT - 0.05, signf(foot.z - mast.z) * 0.2)
+		var near := Geometry3D.get_closest_point_to_segment(bunch, top, foot)
+		assert_float(near.distance_to(bunch)).override_failure_message("the bananas foul a shroud").is_greater(0.3)
+	for light in view.lanterns():
+		assert_float(light.global_position.distance_to(bunch)).override_failure_message("the bananas crowd a lantern").is_greater(0.5)

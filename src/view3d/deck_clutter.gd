@@ -13,12 +13,14 @@ const BANANA := Color("e8c040")
 var _hammocks: Array[Vector3] = []
 var _windlass := AABB()
 var _stores: Array[Vector3] = []
+var _bananas := Vector3.INF
 
 func _init(view: View3D) -> void:
 	var st := MeshKit.begin()
 	_stow_hammocks(st, view)
 	_fit_out_the_bow(st, view)
 	_stow_the_quarterdeck(st, view)
+	_hang_bananas(st, view)
 	mesh = MeshKit.commit(st)
 
 # The middle of every rolled hammock.
@@ -32,6 +34,10 @@ func windlass() -> AABB:
 # Where each thing stowed on the quarterdeck stands.
 func stores() -> Array[Vector3]:
 	return _stores
+
+# The middle of the bunch hung under the mainmast top.
+func bananas() -> Vector3:
+	return _bananas
 
 # Where the rats run: along the tops of the hammocks.
 static func hammock_top() -> float:
@@ -107,6 +113,19 @@ func _stow_the_quarterdeck(st: SurfaceTool, view: View3D) -> void:
 	for at in coils:
 		_coil(st, at, 0.28)
 	_stores.append_array([chest, crate] + coils)
+
+# A bunch of bananas on a line from the forward edge of the mainmast's fighting top: forward, out of the
+# way of the mast's lantern aft and the shrouds either side, and just past the top, so the game camera
+# can see it.
+func _hang_bananas(st: SurfaceTool, view: View3D) -> void:
+	var masts := view.dresser().masts()
+	if masts.is_empty():
+		return
+	masts.sort()
+	var top := view.cell_centre(masts[masts.size() / 2]) + Vector3(-0.62, DeckDresser.TOP_HEIGHT - 0.05, 0)
+	_bananas = top + Vector3(-0.15, -0.45, 0)
+	MeshKit.strut(st, top, _bananas + Vector3(0, 0.16, 0), 0.015, DeckDresser.ROPE)
+	_bunch(st, _bananas, 1.3)
 
 # A crate of light boards, with dark battens down the corners and across the lid.
 static func _crate(st: SurfaceTool, at: Vector3, size: float) -> void:
