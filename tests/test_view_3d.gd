@@ -138,17 +138,22 @@ func test_first_switch_starts_transparent_and_posed() -> void:
 
 func test_flat_camera_lines_up_with_the_2d_camera() -> void:
 	var deck := load_deck()
+	var was := get_tree().root.size
+	get_tree().root.size = Vector2i(1920, 1080)   # so the 3D renders at three times the game's resolution
 	await frames(2)
 	var view := _view(deck)
 	view.set_3d(true, false)
-	await frames(2)   # let the SubViewport take the screen size
+	await drawn_frames(2)   # let the SubViewport take the window size
 	view.pose(0.0)
 	var cam_2d: Camera2D = deck.get_node("Camera2D")
-	# a deck corner should land on the same screen pixel in both views
+	# a deck corner should land on the same spot on screen in both views. The 3D renders at the
+	# window's resolution, so bring its pixels back to the game's 640x360 units to compare.
 	var corner := Vector2(16, 16)
 	var px_2d := cam_2d.get_canvas_transform() * corner
-	var px_3d := view.camera().unproject_position(view.to_3d(corner))
-	assert_vector(px_3d).is_equal_approx(px_2d, Vector2(1.5, 1.5))
+	var to_game := view.get_viewport().get_visible_rect().size / Vector2(view.render_size())
+	var px_3d := view.camera().unproject_position(view.to_3d(corner)) * to_game
+	assert_vector(px_3d).is_equal_approx(px_2d, Vector2(1.0, 1.0))
+	get_tree().root.size = was
 
 func test_hud_draws_over_the_3d() -> void:
 	var deck := load_deck()
@@ -262,3 +267,16 @@ func test_lanterns_swing_on_their_brackets() -> void:
 		# it swings about the bracket, so it never drifts from it
 		assert_float(light.global_position.distance_to(hook.global_position)).is_equal_approx(View3D.LANTERN_DROP, 0.01)
 	assert_int(seen.size()).override_failure_message("the lantern hangs still").is_greater(3)
+
+func test_3d_renders_at_the_window_resolution() -> void:
+	var deck := load_deck()
+	var window := get_tree().root
+	var was := window.size
+	window.size = Vector2i(1920, 1080)   # the headless window is tiny; play at a real size
+	await drawn_frames(2)
+	var view := _view(deck)
+	var game_size := view.get_viewport().get_visible_rect().size
+	assert_vector(Vector2(view.render_size())).is_equal((Vector2(1920, 1080) * View3D.RENDER_SCALE).round())
+	assert_float(float(view.render_size().x)).is_greater(game_size.x)
+	assert_vector(view.drawn_size()).is_equal_approx(game_size, Vector2(0.5, 0.5))
+	window.size = was
