@@ -23,8 +23,9 @@ func _moves(sample: Callable) -> bool:
 func test_the_wheel_and_binnacle_stand_on_the_quarterdeck() -> void:
 	await _setup()
 	for part in [_life.wheel(), _life.binnacle()]:
-		assert_float(part.global_position.x).is_greater(_view.quarterdeck_start())
-		assert_float(part.global_position.y).is_greater_equal(View3D.QUARTERDECK_HEIGHT - 0.001)
+		var at := _view.ship().to_local(part.global_position)   # where it stands aboard, whatever the roll
+		assert_float(at.x).is_greater(_view.quarterdeck_start())
+		assert_float(at.y).is_greater_equal(View3D.QUARTERDECK_HEIGHT - 0.001)
 	assert_bool(await _moves(func(): return _life.wheel().rotation.x)).override_failure_message("the wheel never turns").is_true()
 
 func test_the_flag_flies_at_the_stern_and_waves() -> void:
@@ -66,7 +67,7 @@ func test_rats_scurry_along_the_rail_and_never_fall_in_a_gun_port() -> void:
 	for i in 30:
 		await get_tree().create_timer(0.05).timeout
 		for rat in rats:
-			var at: Vector3 = rat.global_position
+			var at: Vector3 = _view.ship().to_local(rat.global_position)   # the rail, not wherever the roll has taken it
 			assert_float(at.y).is_equal_approx(View3D.BULWARK_HEIGHT + 0.07, 0.03)
 			assert_bool(rails.any(func(z): return absf(at.z - z) < 0.05)).override_failure_message("rat off the rail at %s" % at).is_true()
 			for gap in _view.bulwark_gaps():

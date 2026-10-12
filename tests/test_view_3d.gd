@@ -280,3 +280,56 @@ func test_3d_renders_at_the_window_resolution() -> void:
 	assert_float(float(view.render_size().x)).is_greater(game_size.x)
 	assert_vector(view.drawn_size()).is_equal_approx(game_size, Vector2(0.5, 0.5))
 	window.size = was
+
+func test_rooms_are_only_a_faint_wash_on_one_planked_deck() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	for room in View3D.ROOM_COLORS:
+		var tint := view.floor_tint(room)
+		assert_that(tint).override_failure_message("%s looks like plain deck" % room).is_not_equal(View3D.FLOOR_COLOR)
+		var off := Vector3(tint.r - View3D.FLOOR_COLOR.r, tint.g - View3D.FLOOR_COLOR.g, tint.b - View3D.FLOOR_COLOR.b).length()
+		assert_float(off).override_failure_message("%s is more than a faint wash" % room).is_less(0.06)
+	assert_that(view.floor_tint("")).is_equal(View3D.FLOOR_COLOR)
+
+func test_the_deck_is_lit_by_sky_and_ground_with_contact_shadows_and_haze() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var env := _view(deck).environment()
+	assert_bool(env.ssao_enabled).override_failure_message("no contact shadows under the cargo").is_true()
+	assert_bool(env.fog_enabled).override_failure_message("no haze into the distance").is_true()
+	assert_int(env.ambient_light_source).is_equal(Environment.AMBIENT_SOURCE_SKY)
+	var sky := env.sky.sky_material as ProceduralSkyMaterial
+	assert_float(sky.sky_top_color.get_luminance()).override_failure_message("the sky should light the deck more than the sea does").is_greater(sky.ground_bottom_color.get_luminance())
+
+func test_at_night_lanterns_glow_but_leave_the_fire_the_brightest_thing_on_deck() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	view.toggle_mood()
+	assert_bool(view.environment().glow_enabled).override_failure_message("lanterns and fire need a halo").is_true()
+	var lantern: OmniLight3D = view.lanterns()[0]
+	assert_float(lantern.light_energy * lantern.omni_range).override_failure_message("lantern light floods the deck") \
+		.is_less(View3D.FIRE_LIGHT_ENERGY * View3D.FIRE_LIGHT_RANGE / 4.0)
+
+func test_the_ship_rolls_gently_at_the_game_angle() -> void:
+	var deck := load_deck()
+	var view := _view(deck)
+	view.set_3d(true, false)
+	await drawn_frames(2)
+	var seen := {}
+	for i in 20:
+		await get_tree().create_timer(0.05).timeout
+		var roll := view.ship().rotation
+		assert_float(absf(roll.x) + absf(roll.z)).override_failure_message("that's not a gentle roll").is_less(0.04)
+		seen[snappedf(roll.x, 0.0001)] = true
+	assert_int(seen.size()).override_failure_message("the ship sits dead still").is_greater(3)
+	assert_object(view.mirror_of(deck.get_node("EnemyShip")).get_parent()).override_failure_message("the enemy rolls with us").is_not_same(view.ship())
+
+func test_the_ship_holds_still_while_lined_up_with_the_2d() -> void:
+	var deck := load_deck()
+	var view := _view(deck)
+	view.set_3d(true, false)
+	await drawn_frames(2)
+	view.pose(0.0)
+	assert_that(view.ship().transform).is_equal(Transform3D.IDENTITY)

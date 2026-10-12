@@ -8,6 +8,8 @@ extends CanvasLayer
 # angle. In 2D the 3D isn't drawn and doesn't process.
 
 const PX_PER_M := 16.0
+const ROLL := 0.012   # radians, side to side; pitch is 70% of it
+const HEAVE := 0.08   # metres
 const RENDER_SCALE := 1.0   # the 3D's resolution as a share of the window's: lower is chunkier and cheaper
 const HELD_HEIGHT := 1.65   # carried items ride above the monkey's hat
 const SWITCH_TIME := 1.2
@@ -15,7 +17,8 @@ const FADE_SHARE := 0.3          # first 30% of the switch is the crossfade
 const FLAT_FOV := 10.0           # horizontal, degrees: narrow enough to look flat
 const GAME_FOV := 50.0
 const GAME_TILT := deg_to_rad(31.0)
-const FLOOR_COLOR := Color(0.48, 0.34, 0.22)
+const FLOOR_COLOR := Color(0.52, 0.36, 0.23)
+const PLANK_TILE := 8.0   # metres of deck one plank texture covers
 const HULL_COLOR := Color(0.29, 0.17, 0.11)
 const HULL_DEPTH := 2.2
 const BULWARK_HEIGHT := 0.9
@@ -25,16 +28,17 @@ const RAIL_COLOR := Color(0.3, 0.19, 0.11)
 const QUARTERDECK_HEIGHT := 0.45
 const ROPE_COLOR := Color(0.16, 0.1, 0.06)
 const LANTERN_COLOR := Color(1.0, 0.65, 0.35)
-const LANTERN_ENERGY := 1.0
-const LANTERN_RANGE := 7.0
+const LANTERN_ENERGY := 0.5
+const LANTERN_RANGE := 4.5
 const LANTERN_DROP := 0.36    # from its hook to the middle of the glass
 const LANTERN_SWING := 0.12   # radians
 # Two moods. The afternoon is the default; lantern light is behind toggle_mood (N). At night the
 # lanterns are dim and warm, so the fire stays the brightest thing on deck.
-const DAY := {sky = Color(0.1, 0.25, 0.36), sea = Color(0.12, 0.33, 0.48), sun = Color.WHITE, sun_energy = 0.9,
-	ambient = Color(0.55, 0.62, 0.75), ambient_energy = 0.3, lanterns = false}
+# The deck is lit from above by the sky and from below by the sea and the hull (sky_top and ground).
+const DAY := {sky = Color(0.1, 0.25, 0.36), sea = Color(0.12, 0.33, 0.48), sun = Color("ffe2b8"), sun_energy = 1.05,
+	sky_top = Color("9ab8e0"), ground = Color("4a3020"), ambient_energy = 0.45, lanterns = false}
 const NIGHT := {sky = Color(0.027, 0.063, 0.11), sea = Color(0.043, 0.118, 0.188), sun = Color(0.66, 0.74, 0.91), sun_energy = 0.35,
-	ambient = Color(0.25, 0.31, 0.48), ambient_energy = 0.4, lanterns = true}
+	sky_top = Color("40507a"), ground = Color("1a1c28"), ambient_energy = 0.45, lanterns = true}
 # Each burning cell lights the deck round it, up to a few lights; flickering, so the fire is the
 # liveliest light on deck, day or night.
 const MAX_FIRE_LIGHTS := 6
@@ -42,6 +46,7 @@ const FIRE_LIGHT_COLOR := Color(1.0, 0.48, 0.16)
 const FIRE_LIGHT_ENERGY := 2.4
 const FIRE_LIGHT_RANGE := 5.0
 const BALUSTER_COLOR := Color(0.72, 0.53, 0.26)
+const ROOM_WASH := 0.15  # how much of its colour a room's floor takes on: enough to learn the map, no more
 const ROOM_COLORS := {
 	"magazine": Color(0.49, 0.29, 0.23),
 	"shotLocker": Color(0.44, 0.42, 0.40),
@@ -96,6 +101,7 @@ var _mirrors := {}   # 2D node -> its 3D stand-in
 var _flames: Array[MeshInstance3D] = []
 var _fire_lights: Array[OmniLight3D] = []
 var _life: DeckLife
+var _ship: Node3D   # everything aboard, so it rolls together; the camera, sea and enemy stay put
 
 func _ready() -> void:
 	_container = SubViewportContainer.new()
@@ -110,6 +116,8 @@ func _ready() -> void:
 	get_window().size_changed.connect(_fit_to_window)
 	_world = Node3D.new()
 	_viewport.add_child(_world)
+	_ship = Node3D.new()
+	_world.add_child(_ship)
 	_build_stage()
 	_build_hull()
 	_build_bulwark()
@@ -118,7 +126,7 @@ func _ready() -> void:
 	_build_rigging()
 	_build_lanterns()
 	_life = DeckLife.new(self)
-	_world.add_child(_life)
+	_ship.add_child(_life)
 	_set_mood(DAY)
 	_sleep()
 
@@ -174,14 +182,22 @@ func sky_color() -> Color:
 
 func _set_mood(mood: Dictionary) -> void:
 	_env.background_color = mood.sky
-	_env.ambient_light_color = mood.ambient
+	var sky := _env.sky.sky_material as ProceduralSkyMaterial
+	sky.sky_top_color = mood.sky_top
+	sky.sky_horizon_color = mood.sky_top.lerp(mood.ground, 0.4)
+	sky.ground_horizon_color = mood.sky_top.lerp(mood.ground, 0.6)
+	sky.ground_bottom_color = mood.ground
 	_env.ambient_light_energy = mood.ambient_energy
+	_env.fog_light_color = mood.sky
 	_sun.light_color = mood.sun
 	_sun.light_energy = mood.sun_energy
 	_sea.albedo_color = mood.sea
 	for light in _lanterns:
 		light.light_energy = LANTERN_ENERGY if mood.lanterns else 0.0
 	_lantern_glass.emission_enabled = mood.lanterns
+
+func environment() -> Environment:
+	return _env
 
 func render_size() -> Vector2i:
 	return _viewport.size
@@ -218,6 +234,16 @@ func pose(b: float) -> void:
 	_camera.far = distance + 150.0
 	_camera.position = _target() + Vector3(0, distance * cos(tilt), distance * sin(tilt))
 	_camera.look_at(_target(), Vector3.FORWARD)
+	_roll(e)
+
+# The ship rolls and heaves a little about the middle of the deck, fading in with the tilt, so it holds
+# dead still while the view lines up with the 2D. Only the 3D moves: the 2D game never knows.
+func _roll(amount: float) -> void:
+	var t := Time.get_ticks_msec() / 1000.0
+	var basis := Basis.from_euler(Vector3(sin(t * 0.7) * ROLL, 0, sin(t * 0.45) * ROLL * 0.7) * amount)
+	var pivot := Vector3(_deck_rect().get_center().x, 0, _deck_rect().get_center().y)
+	var heave := Vector3(0, sin(t * 0.9) * HEAVE * amount, 0)
+	_ship.transform = Transform3D(basis, pivot - basis * pivot + heave) if amount > 0.0 else Transform3D.IDENTITY
 
 func _apply(b: float) -> void:
 	_blend = b
@@ -251,11 +277,26 @@ func _build_stage() -> void:
 	_sun = DirectionalLight3D.new()
 	_sun.rotation = Vector3(deg_to_rad(-55), deg_to_rad(-30), 0)
 	_sun.shadow_enabled = true
-	_sun.directional_shadow_max_distance = 300.0
+	_sun.directional_shadow_max_distance = 120.0
+	_sun.shadow_blur = 1.5
 	_world.add_child(_sun)
 	_env = Environment.new()
 	_env.background_mode = Environment.BG_COLOR
-	_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	_env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY   # the sky is only for light: the background stays a plain colour
+	_env.sky = Sky.new()
+	_env.sky.sky_material = ProceduralSkyMaterial.new()
+	_env.ssao_enabled = true   # contact shadows where cargo, crew and rails meet the deck
+	_env.ssao_radius = 0.8
+	_env.ssao_intensity = 2.0
+	_env.fog_enabled = true    # a light haze on whatever's furthest from the camera
+	_env.fog_mode = Environment.FOG_MODE_DEPTH
+	_env.fog_depth_begin = 45.0
+	_env.fog_depth_end = 140.0
+	_env.fog_density = 0.35
+	_env.glow_enabled = true   # only what's brighter than lit wood blooms: lantern glass, flames, the cannon lamps
+	_env.glow_hdr_threshold = 1.0
+	_env.glow_intensity = 0.9
+	_env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
 	_env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var world_env := WorldEnvironment.new()
 	world_env.environment = _env
@@ -297,6 +338,9 @@ func lanterns() -> Array[OmniLight3D]:
 func shroud_feet() -> PackedVector3Array:
 	return _shroud_feet
 
+func ship() -> Node3D:
+	return _ship
+
 func life() -> DeckLife:
 	return _life
 
@@ -335,7 +379,7 @@ func _build_hull() -> void:
 	var deck := _plank_material(FLOOR_COLOR)
 	var sides := StandardMaterial3D.new()
 	sides.albedo_color = HULL_COLOR
-	_world.add_child(_slab(_outline, -HULL_DEPTH, -0.02, sides, deck))
+	_ship.add_child(_slab(_outline, -HULL_DEPTH, -0.02, sides, deck))
 
 # A waist-high rail round the hull's edge, painted red inboard, with a port cut for each gun.
 # It's built from short pieces so the bow curves and a port is a missing piece.
@@ -377,10 +421,10 @@ func _build_bulwark() -> void:
 			paint.append(Transform3D(along * Basis.from_scale(Vector3(length, BULWARK_HEIGHT - 0.12, 0.02)), at.call(0.21, BULWARK_HEIGHT / 2.0 - 0.02)))
 			rail.append(Transform3D(along * Basis.from_scale(Vector3(length + 0.02, 0.07, 0.3)), at.call(0.1, BULWARK_HEIGHT + 0.035)))
 	var unit := BoxMesh.new()
-	_world.add_child(_multimesh(unit, body, [], BULWARK_COLOR))
-	_world.add_child(_multimesh(unit, paint, [], BULWARK_PAINT))
-	_world.add_child(_multimesh(unit, rail, [], RAIL_COLOR))
-	_world.add_child(_multimesh(unit, sills, [], RAIL_COLOR))
+	_ship.add_child(_multimesh(unit, body, [], BULWARK_COLOR))
+	_ship.add_child(_multimesh(unit, paint, [], BULWARK_PAINT))
+	_ship.add_child(_multimesh(unit, rail, [], RAIL_COLOR))
+	_ship.add_child(_multimesh(unit, sills, [], RAIL_COLOR))
 
 # The quarterdeck sits over the solid block of wall columns at the stern, one step up, with a
 # balustrade along its front. Only wall tiles are under it, so in 2D nobody stands on it.
@@ -400,7 +444,7 @@ func _build_quarterdeck() -> void:
 	sides.albedo_color = BULWARK_COLOR
 	for shape in Geometry2D.intersect_polygons(_outline, PackedVector2Array([aft.position,
 			Vector2(aft.end.x, aft.position.y), aft.end, Vector2(aft.position.x, aft.end.y)])):
-		_world.add_child(_slab(shape, -0.02, QUARTERDECK_HEIGHT, sides, _plank_material(FLOOR_COLOR)))
+		_ship.add_child(_slab(shape, -0.02, QUARTERDECK_HEIGHT, sides, _plank_material(FLOOR_COLOR)))
 	var x := _quarterdeck_start + 0.1
 	var posts: Array[Transform3D] = []
 	var z := r.position.y
@@ -411,10 +455,10 @@ func _build_quarterdeck() -> void:
 	post.top_radius = 0.035
 	post.bottom_radius = 0.05
 	post.height = 0.5
-	_world.add_child(_multimesh(post, posts, [], BALUSTER_COLOR))
+	_ship.add_child(_multimesh(post, posts, [], BALUSTER_COLOR))
 	var cap := BoxMesh.new()
 	cap.size = Vector3(0.14, 0.07, r.size.y)
-	_world.add_child(_mesh(cap, Vector3(x, QUARTERDECK_HEIGHT + 0.53, r.get_center().y), RAIL_COLOR))
+	_ship.add_child(_mesh(cap, Vector3(x, QUARTERDECK_HEIGHT + 0.53, r.get_center().y), RAIL_COLOR))
 
 func _is_solid_column(column: int) -> bool:
 	var used := hull.get_used_rect()
@@ -472,27 +516,49 @@ func _slab(outline: PackedVector2Array, bottom: float, top: float, sides: Materi
 	node.set_surface_override_material(1, cap)
 	return node
 
-# Planks run fore and aft, four to the metre, mapped in world space so every surface lines up.
+# Planks run fore and aft, four to the metre, mapped in world space so every surface lines up. One
+# texture covers 8 m square, so the butt joints and the plank-to-plank variation don't visibly repeat.
 func _plank_material(tint: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = tint
 	m.albedo_texture = _planks()
 	m.uv1_triplanar = true
 	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3.ONE / PLANK_TILE
+	m.roughness = 0.9
 	return m
 
+# Grey-scale, so the material's tint gives the colour: planks of varied length and shade, a light
+# grain line and a dark one along each, black seams, and a pair of trenails at every butt joint.
 func _planks() -> ImageTexture:
 	if _plank_texture:
 		return _plank_texture
-	var img := Image.create(64, 64, false, Image.FORMAT_RGB8)
-	for row in 4:
-		var shade := 0.88 + 0.04 * (row * 7 % 4)
-		img.fill_rect(Rect2i(0, row * 16, 64, 16), Color(shade, shade, shade))
-		img.fill_rect(Rect2i(0, row * 16 + 15, 64, 1), Color(0.45, 0.45, 0.45))     # seam
-		img.fill_rect(Rect2i((row * 37) % 60, row * 16, 2, 15), Color(0.55, 0.55, 0.55))   # butt joint
+	var px := 64   # per metre
+	var size := int(PLANK_TILE * px)
+	var img := Image.create(size, size, false, Image.FORMAT_RGB8)
+	img.fill(Color(0.2, 0.2, 0.2))
+	var rows := size / 16
+	for r in rows:
+		var x := -((r * 53) % 160)
+		while x < size:
+			var length := px * (2 + ((x * 3 + r * 11) & 3))
+			var shade := 0.78 + ((x * 7 + r * 13) % 11) * 0.022
+			var plank := Rect2i(x, r * 16, length, 16).intersection(Rect2i(0, 0, size, size))
+			img.fill_rect(plank, Color(shade, shade, shade))
+			img.fill_rect(Rect2i(plank.position.x, r * 16 + 4 + posmod(x, 5), plank.size.x, 1), Color(shade + 0.06, shade + 0.06, shade + 0.06))
+			img.fill_rect(Rect2i(plank.position.x, r * 16 + 10 - posmod(x, 3), plank.size.x, 1), Color(shade - 0.1, shade - 0.1, shade - 0.1))
+			if x >= 0:
+				img.fill_rect(Rect2i(x, r * 16, 2, 16), Color(0.12, 0.12, 0.12))
+				for y in [4, 10]:
+					img.fill_rect(Rect2i(x + 5, r * 16 + y, 2, 2), Color(0.18, 0.18, 0.18))
+			x += length
+		img.fill_rect(Rect2i(0, r * 16 + 15, size, 1), Color(0.14, 0.14, 0.14))
 	img.generate_mipmaps()
 	_plank_texture = ImageTexture.create_from_image(img)
 	return _plank_texture
+
+func floor_tint(room: String) -> Color:
+	return FLOOR_COLOR.lerp(ROOM_COLORS.get(room, FLOOR_COLOR), ROOM_WASH)
 
 # The floor tiles, tinted by their room, in one MultiMesh. There are no walls: the dresser turns
 # each wall tile into cargo, a divider or a bitt.
@@ -504,18 +570,18 @@ func _build_deck() -> void:
 		var at := cell_centre(cell)
 		if data.get_collision_polygons_count(0) == 0:
 			floors.append(Transform3D(Basis(), at))
-			floor_colors.append(ROOM_COLORS.get(data.get_custom_data("room"), FLOOR_COLOR))
+			floor_colors.append(floor_tint(data.get_custom_data("room")))
 	var tile := PlaneMesh.new()
 	tile.size = Vector2(1, 1)
 	var floor := _multimesh(tile, floors, floor_colors, Color.WHITE)
 	floor.material_override = _plank_material(Color.WHITE)
 	floor.material_override.vertex_color_use_as_albedo = true
 	floor.material_override.vertex_color_is_srgb = true
-	_world.add_child(floor)
+	_ship.add_child(floor)
 	_dresser = DeckDresser.new(hull, _quarterdeck_column, cell_centre)
 	var dressing := MeshInstance3D.new()
 	dressing.mesh = _dresser.mesh()
-	_world.add_child(dressing)
+	_ship.add_child(dressing)
 	_floor_count = floors.size()
 
 # Shrouds from each fighting top down to the rail on both sides, with ratlines across them, and a
@@ -546,7 +612,7 @@ func _build_rigging() -> void:
 				MeshKit.cylinder(st, Vector3(mast.x - 0.65 + k * 0.26, 0.62, pin_z), 0.022, 0.2, 5, DeckDresser.LIGHT)
 	var rigging := MeshInstance3D.new()
 	rigging.mesh = MeshKit.commit(st)
-	_world.add_child(rigging)
+	_ship.add_child(rigging)
 
 # A lantern on a bracket at every gangway post, hung on the passage side, and one on each mast. Each
 # hangs from its own hook so it can swing, and has its own light, without shadows; the glass glows.
@@ -565,12 +631,12 @@ func _build_lanterns() -> void:
 	_lantern_glass.albedo_color = LANTERN_COLOR
 	_lantern_glass.emission_enabled = true
 	_lantern_glass.emission = LANTERN_COLOR
-	_lantern_glass.emission_energy_multiplier = 2.0
+	_lantern_glass.emission_energy_multiplier = 4.0
 	var hang := func(hook_at: Vector3, bracket_from: Vector3) -> void:
 		MeshKit.strut(brackets, bracket_from, hook_at, 0.04, DeckDresser.BLACK)
 		var hook := Node3D.new()
 		hook.position = hook_at
-		_world.add_child(hook)
+		_ship.add_child(hook)
 		var body := MeshInstance3D.new()
 		body.mesh = frame_mesh
 		hook.add_child(body)
@@ -596,7 +662,7 @@ func _build_lanterns() -> void:
 		hang.call(mast + Vector3(0.4, 2.31, 0), mast + Vector3(0.2, 2.3, 0))
 	var bracket_mesh := MeshInstance3D.new()
 	bracket_mesh.mesh = MeshKit.commit(brackets)
-	_world.add_child(bracket_mesh)
+	_ship.add_child(bracket_mesh)
 
 # Lanterns sway a little on their hooks, each out of step with the next.
 func _swing_lanterns() -> void:
@@ -646,14 +712,14 @@ func _sync() -> void:
 		m.position.y = HELD_HEIGHT if item.held else 0.0
 		(m.get_child(0) as MeshInstance3D).material_override.albedo_color = ITEM_COLORS.get(item.kind, Color.WHITE)
 	if enemy:
-		_place(enemy, func(): return _box(Vector3(16, 1.6, 4), Color(0.17, 0.1, 0.07)))
+		_place(enemy, func(): return _box(Vector3(16, 1.6, 4), Color(0.17, 0.1, 0.07)), _world)
 	_sync_flames()
 
-func _place(node: Node2D, make: Callable) -> Node3D:
+func _place(node: Node2D, make: Callable, parent: Node3D = null) -> Node3D:
 	var m: Node3D = _mirrors.get(node)
 	if m == null:
 		m = make.call()
-		_world.add_child(m)
+		(parent if parent else _ship).add_child(m)
 		_mirrors[node] = m
 	var at := to_3d(node.global_position)
 	m.position.x = at.x
@@ -675,7 +741,7 @@ func _sync_flames() -> void:
 		glow.emission = Color(1.0, 0.45, 0.1)
 		glow.emission_energy_multiplier = 2.0
 		flame.material_override = glow
-		_world.add_child(flame)
+		_ship.add_child(flame)
 		_flames.append(flame)
 	for i in _flames.size():
 		_flames[i].visible = i < cells.size()
@@ -686,7 +752,7 @@ func _sync_flames() -> void:
 		light.light_color = FIRE_LIGHT_COLOR
 		light.omni_range = FIRE_LIGHT_RANGE
 		light.shadow_enabled = false
-		_world.add_child(light)
+		_ship.add_child(light)
 		_fire_lights.append(light)
 	var t := Time.get_ticks_msec() / 1000.0
 	for i in _fire_lights.size():
