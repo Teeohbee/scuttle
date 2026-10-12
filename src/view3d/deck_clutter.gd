@@ -8,14 +8,17 @@ const HAMMOCK_RADIUS := 0.13
 const HAMMOCK_LENGTH := 0.55
 const HAMMOCK_GAP := 0.05
 const RAIL_TOP := View3D.BULWARK_HEIGHT + 0.07
+const BANANA := Color("e8c040")
 
 var _hammocks: Array[Vector3] = []
 var _windlass := AABB()
+var _stores: Array[Vector3] = []
 
 func _init(view: View3D) -> void:
 	var st := MeshKit.begin()
 	_stow_hammocks(st, view)
 	_fit_out_the_bow(st, view)
+	_stow_the_quarterdeck(st, view)
 	mesh = MeshKit.commit(st)
 
 # The middle of every rolled hammock.
@@ -25,6 +28,10 @@ func hammocks() -> Array[Vector3]:
 # The windlass's bounds, barrel and bitts.
 func windlass() -> AABB:
 	return _windlass
+
+# Where each thing stowed on the quarterdeck stands.
+func stores() -> Array[Vector3]:
+	return _stores
 
 # Where the rats run: along the tops of the hammocks.
 static func hammock_top() -> float:
@@ -76,6 +83,50 @@ func _fit_out_the_bow(st: SurfaceTool, view: View3D) -> void:
 		_coil(st, Vector3(r.position.x + 0.6, 0, edge + inboard * 2.1), 0.26)
 		var spar := Vector3(r.position.x + 0.15, 0.09, edge + inboard * 0.6)
 		MeshKit.cylinder(st, spar, 0.09, 2.6, 8, DeckDresser.LIGHT, Basis(Vector3.RIGHT, inboard * PI / 2))
+
+# Along the quarterdeck's sides, clear of the helm: the captain's sea chest, a crate of bananas
+# and two coils of rope.
+func _stow_the_quarterdeck(st: SurfaceTool, view: View3D) -> void:
+	var r := view.deck_rect()
+	var x := view.quarterdeck_start()
+	if not is_finite(x):
+		return
+	var y := View3D.QUARTERDECK_HEIGHT
+	var chest := Vector3(x + 1.4, y, r.position.y + 0.7)
+	MeshKit.box(st, chest + Vector3(0, 0.21, 0), Vector3(0.8, 0.42, 0.5), DeckDresser.RED)
+	MeshKit.lathe(st, chest + Vector3(-0.4, 0.42, 0), PackedVector2Array([Vector2(0.25, 0), Vector2(0.25, 0.8)]), 8, DeckDresser.RED,
+		Basis(Vector3.BACK, -PI / 2) * Basis.from_scale(Vector3(1, 1, 0.5)))   # a rounded lid, fore and aft
+	for dx in [-0.3, 0.3]:
+		MeshKit.box(st, chest + Vector3(dx, 0.21, 0), Vector3(0.06, 0.44, 0.52), DeckDresser.IRON)
+	MeshKit.box(st, chest + Vector3(0, 0.36, 0.26), Vector3(0.1, 0.12, 0.04), DeckDresser.BRASS)
+	var crate := Vector3(x + 1.4, y, r.end.y - 0.7)
+	_crate(st, crate, 0.6)
+	_bunch(st, crate + Vector3(-0.08, 0.66, 0))
+	_bunch(st, crate + Vector3(0.14, 0.64, 0.12), 0.9)
+	var coils := [Vector3(r.end.x - 0.8, y, r.position.y + 0.7), Vector3(r.end.x - 0.8, y, r.end.y - 0.7)]
+	for at in coils:
+		_coil(st, at, 0.28)
+	_stores.append_array([chest, crate] + coils)
+
+# A crate of light boards, with dark battens down the corners and across the lid.
+static func _crate(st: SurfaceTool, at: Vector3, size: float) -> void:
+	MeshKit.box(st, at + Vector3(0, size / 2.0, 0), Vector3.ONE * size, DeckDresser.LIGHT)
+	for c in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+		MeshKit.box(st, at + Vector3(c.x * (size / 2.0 - 0.02), size / 2.0, c.y * (size / 2.0 - 0.02)), Vector3(0.06, size + 0.01, 0.06), DeckDresser.MID)
+	MeshKit.box(st, at + Vector3(0, size, 0), Vector3(size + 0.02, 0.05, 0.06), DeckDresser.MID)
+	MeshKit.box(st, at + Vector3(0, size, 0), Vector3(0.06, 0.05, size + 0.02), DeckDresser.MID)
+
+# A hand of bananas round a stalk, each one bent in two.
+static func _bunch(st: SurfaceTool, at: Vector3, size := 1.0) -> void:
+	MeshKit.strut(st, at, at + Vector3(0, 0.16, 0) * size, 0.03 * size, DeckDresser.DARK)
+	for k in 6:
+		var out := Vector3(cos(k * 1.05), 0, sin(k * 1.05))
+		var base := at + out * 0.04 * size
+		var knee := base + (out * 0.1 + Vector3(0, 0.02, 0)) * size
+		var tip := knee + (out * 0.05 + Vector3(0, 0.1, 0)) * size
+		MeshKit.strut(st, base, knee, 0.05 * size, BANANA)
+		MeshKit.strut(st, knee, tip, 0.045 * size, BANANA)
+		MeshKit.strut(st, tip, tip + Vector3(0, 0.02, 0) * size, 0.025 * size, DeckDresser.DARK)
 
 # A coil of rope flaked down on the deck: rings stacked smaller towards the top.
 static func _coil(st: SurfaceTool, at: Vector3, radius: float) -> void:

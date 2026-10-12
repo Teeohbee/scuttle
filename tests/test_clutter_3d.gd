@@ -68,3 +68,16 @@ func test_a_windlass_spans_the_bow_clear_of_the_bell_and_the_gangway() -> void:
 		assert_float(at.x).override_failure_message("the windlass is aft of a gangway post").is_greater(windlass.end.x)
 	for cell in view.dresser().masts():
 		assert_float(view.cell_centre(cell).x).is_greater(windlass.end.x)
+
+func test_stores_on_the_quarterdeck_leave_the_helm_clear() -> void:
+	var view: View3D = await _view()
+	var stores := view.clutter().stores()
+	assert_int(stores.size()).is_greater_equal(3)
+	var life := view.life()
+	var helm: Array[Vector3] = [life.wheel().position, life.binnacle().position, life.flag().position]
+	for at in stores:
+		assert_float(at.x).override_failure_message("stores off the quarterdeck at %s" % at).is_greater(view.quarterdeck_start())
+		assert_float(at.y).override_failure_message("stores sunk in the quarterdeck at %s" % at).is_equal_approx(View3D.QUARTERDECK_HEIGHT, 0.01)
+		for thing in helm:
+			assert_float(Vector2(at.x, at.z).distance_to(Vector2(thing.x, thing.z))) \
+				.override_failure_message("stores at %s crowd the helm at %s" % [at, thing]).is_greater(1.0)   # half a store's width, then 0.6 m clear
