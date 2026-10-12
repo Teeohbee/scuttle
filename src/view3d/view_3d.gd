@@ -83,6 +83,10 @@ var _quarterdeck_start := INF       # x in metres; everything aft of it is one s
 var _quarterdeck_column := 0
 var _dresser: DeckDresser
 var _shroud_feet := PackedVector3Array()
+var _wales: Array[float] = []
+var _port_lids := PackedVector3Array()
+var _channels: Array[Rect2] = []
+var _exterior: MeshInstance3D
 var _lanterns: Array[OmniLight3D] = []
 var _lantern_glass: StandardMaterial3D
 var _night := false
@@ -117,6 +121,7 @@ func _ready() -> void:
 	_build_quarterdeck()
 	_build_deck()
 	_build_rigging()
+	_build_exterior()
 	_build_lanterns()
 	_life = DeckLife.new(self)
 	_ship.add_child(_life)
@@ -332,6 +337,18 @@ func quarterdeck_start() -> float:
 
 func lanterns() -> Array[OmniLight3D]:
 	return _lanterns
+
+func wales() -> Array[float]:
+	return _wales
+
+func port_lids() -> PackedVector3Array:
+	return _port_lids
+
+func channels() -> Array[Rect2]:
+	return _channels
+
+func hull_exterior() -> MeshInstance3D:
+	return _exterior
 
 func shroud_feet() -> PackedVector3Array:
 	return _shroud_feet
@@ -618,6 +635,60 @@ func _build_rigging() -> void:
 	var rigging := MeshInstance3D.new()
 	rigging.mesh = MeshKit.commit(st)
 	_ship.add_child(rigging)
+
+# The outside of the hull: dark wales right round it and a red stripe under the rail, a lid swung open
+# over every gun port (red inside, as lids were), and a channel under each mast's shrouds, with deadeyes
+# on it and chain plates down the side. All of it is outboard of the outline, in one mesh.
+func _build_exterior() -> void:
+	var r := _deck_rect()
+	var mid := r.get_center().y
+	var centre := r.get_center()
+	var st := MeshKit.begin()
+	_wales = [-0.12, -0.5]
+	for i in _outline.size():
+		var a := _outline[i]
+		var b := _outline[(i + 1) % _outline.size()]
+		var pieces := ceili(a.distance_to(b) / 0.5)
+		for k in pieces:
+			var p := a.lerp(b, float(k) / pieces)
+			var q := a.lerp(b, float(k + 1) / pieces)
+			var m := (p + q) / 2.0
+			var out := Vector2(q.y - p.y, p.x - q.x).normalized()
+			if out.dot(m - centre) < 0.0:
+				out = -out
+			var along := Basis(Vector3.UP, atan2(p.y - q.y, q.x - p.x))
+			var length := p.distance_to(q) + 0.02
+			var at := func(offset: float, y: float) -> Vector3:
+				var c := m + out * offset
+				return Vector3(c.x, y, c.y)
+			MeshKit.box(st, at.call(0.06, _wales[0]), Vector3(length, 0.14, 0.12), DeckDresser.DARK, along)
+			MeshKit.box(st, at.call(0.04, _wales[1]), Vector3(length, 0.1, 0.08), DeckDresser.DARK, along)
+			if Array(_gaps).all(func(g): return g.distance_to(m) > 0.3):
+				MeshKit.box(st, at.call(0.01, 0.66), Vector3(length, 0.1, 0.02), BULWARK_PAINT, along)
+	for gap in _gaps:
+		var side := signf(gap.y - mid)
+		var hinge := Vector3(gap.x, BULWARK_HEIGHT, gap.y + side * 0.03)
+		var swing := deg_to_rad(80.0)   # from hanging shut to propped out, just short of level
+		var down := Vector3(0, -cos(swing), side * sin(swing))
+		var lid := Basis(Vector3.RIGHT, -down, Vector3.RIGHT.cross(-down))
+		var middle := hinge + down * 0.25
+		MeshKit.box(st, middle, Vector3(0.45, 0.5, 0.05), HULL_COLOR, lid)
+		MeshKit.box(st, middle - lid.z * side * 0.03, Vector3(0.39, 0.44, 0.02), BULWARK_PAINT, lid)
+		_port_lids.append(middle)
+	for cell in _dresser.masts():
+		var mast := cell_centre(cell)
+		for side: float in [-1.0, 1.0]:
+			var edge := (r.position.y - 0.35) if side < 0 else (r.end.y + 0.35)
+			var z := edge + side * 0.15
+			MeshKit.box(st, Vector3(mast.x, 0.55, z), Vector3(1.9, 0.07, 0.28), DeckDresser.CAP)
+			_channels.append(Rect2(mast.x - 0.95, z - 0.14, 1.9, 0.28))
+			for j in [-1.5, -0.5, 0.5, 1.5]:
+				var x: float = mast.x + j * 0.5
+				MeshKit.cylinder(st, Vector3(x, 0.585, z + side * 0.04), 0.07, 0.06, 6, DeckDresser.DARK)
+				MeshKit.strut(st, Vector3(x, 0.55, z + side * 0.08), Vector3(x, -0.3, edge + side * 0.13), 0.035, DeckDresser.IRON)
+	_exterior = MeshInstance3D.new()
+	_exterior.mesh = MeshKit.commit(st)
+	_ship.add_child(_exterior)
 
 # A lantern on a bracket at every gangway post, hung on the passage side, and one on each mast. Each
 # hangs from its own hook so it can swing, and has its own light, without shadows; the glass glows.
