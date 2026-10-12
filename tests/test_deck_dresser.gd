@@ -97,3 +97,27 @@ func test_gangway_posts_pair_up_across_each_doorway() -> void:
 			.override_failure_message("post at %s has no partner across the doorway" % p.cell).is_true()
 	# the deck has eight doorways off the passage
 	assert_int(posts.size()).is_equal(16)
+
+func test_each_divider_run_is_one_piece_of_deck_furniture() -> void:
+	await _setup()
+	var runs := _dresser.dividers()
+	var covered := {}
+	for run in runs:
+		var cells: Array = run.cells
+		assert_int(cells.size()).is_greater(1)
+		for cell in cells:
+			assert_bool(covered.has(cell)).override_failure_message("%s is in two dividers" % cell).is_false()
+			covered[cell] = true
+			assert_bool(cell == cells[0] or cells.has(cell - run.along)) \
+				.override_failure_message("divider %s has a gap" % [cells]).is_true()
+		assert_str(run.style).is_not_empty()
+	var dividers := _walls().filter(func(c): return _dresser.kind_of(c) == DeckDresser.Kind.DIVIDER)
+	assert_int(covered.size()).is_equal(dividers.size())
+	# three columns of dividers, port and starboard: boats, a grating and lashed cargo, matched across
+	assert_int(runs.size()).is_equal(6)
+	var styles := {}
+	for run in runs:
+		styles.get_or_add(run.cells[0].x, {})[run.style] = true
+	assert_int(styles.size()).is_equal(3)
+	for column in styles:
+		assert_int(styles[column].size()).override_failure_message("column %d mixes styles" % column).is_equal(1)
