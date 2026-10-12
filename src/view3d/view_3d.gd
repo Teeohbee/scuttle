@@ -26,8 +26,8 @@ const RAIL_COLOR := Color(0.3, 0.19, 0.11)
 const QUARTERDECK_HEIGHT := 0.45
 const ROPE_COLOR := Color(0.16, 0.1, 0.06)
 const LANTERN_COLOR := Color(1.0, 0.65, 0.35)
-const LANTERN_ENERGY := 1.0
-const LANTERN_RANGE := 7.0
+const LANTERN_ENERGY := 0.5
+const LANTERN_RANGE := 4.5
 const LANTERN_DROP := 0.36    # from its hook to the middle of the glass
 const LANTERN_SWING := 0.12   # radians
 # Two moods. The afternoon is the default; lantern light is behind toggle_mood (N). At night the
@@ -278,6 +278,10 @@ func _build_stage() -> void:
 	_env.fog_depth_begin = 45.0
 	_env.fog_depth_end = 140.0
 	_env.fog_density = 0.35
+	_env.glow_enabled = true   # only what's brighter than lit wood blooms: lantern glass, flames, the cannon lamps
+	_env.glow_hdr_threshold = 1.0
+	_env.glow_intensity = 0.9
+	_env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
 	_env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var world_env := WorldEnvironment.new()
 	world_env.environment = _env
@@ -609,7 +613,7 @@ func _build_lanterns() -> void:
 	_lantern_glass.albedo_color = LANTERN_COLOR
 	_lantern_glass.emission_enabled = true
 	_lantern_glass.emission = LANTERN_COLOR
-	_lantern_glass.emission_energy_multiplier = 2.0
+	_lantern_glass.emission_energy_multiplier = 4.0
 	var hang := func(hook_at: Vector3, bracket_from: Vector3) -> void:
 		MeshKit.strut(brackets, bracket_from, hook_at, 0.04, DeckDresser.BLACK)
 		var hook := Node3D.new()

@@ -301,3 +301,13 @@ func test_the_deck_is_lit_by_sky_and_ground_with_contact_shadows_and_haze() -> v
 	assert_int(env.ambient_light_source).is_equal(Environment.AMBIENT_SOURCE_SKY)
 	var sky := env.sky.sky_material as ProceduralSkyMaterial
 	assert_float(sky.sky_top_color.get_luminance()).override_failure_message("the sky should light the deck more than the sea does").is_greater(sky.ground_bottom_color.get_luminance())
+
+func test_at_night_lanterns_glow_but_leave_the_fire_the_brightest_thing_on_deck() -> void:
+	var deck := load_deck()
+	await frames(2)
+	var view := _view(deck)
+	view.toggle_mood()
+	assert_bool(view.environment().glow_enabled).override_failure_message("lanterns and fire need a halo").is_true()
+	var lantern: OmniLight3D = view.lanterns()[0]
+	assert_float(lantern.light_energy * lantern.omni_range).override_failure_message("lantern light floods the deck") \
+		.is_less(View3D.FIRE_LIGHT_ENERGY * View3D.FIRE_LIGHT_RANGE / 4.0)
