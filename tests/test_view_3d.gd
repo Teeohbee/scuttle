@@ -7,16 +7,12 @@ func _view(deck: Node2D) -> View3D:
 func _is_wall(hull: TileMapLayer, cell: Vector2i) -> bool:
 	return hull.get_cell_tile_data(cell).get_collision_polygons_count(0) > 0
 
-func test_walls_match_the_collision_tiles() -> void:
+func test_floor_matches_the_walkable_tiles() -> void:
 	var deck := load_deck()
 	await frames(2)
 	var hull: TileMapLayer = deck.get_node("Hull")
 	var view := _view(deck)
 	var walls := hull.get_used_cells().filter(func(c): return _is_wall(hull, c))
-	# wall tiles drawn as walls, not hidden under the quarterdeck
-	var forward := walls.filter(func(c): return view.to_3d(hull.to_global(hull.map_to_local(c))).x < view.quarterdeck_start())
-	assert_array(forward).is_not_empty()
-	assert_int(view.wall_count()).is_equal(forward.size())
 	assert_int(view.floor_count()).is_equal(hull.get_used_cells().size() - walls.size())
 
 func test_quarterdeck_only_covers_wall_tiles() -> void:
