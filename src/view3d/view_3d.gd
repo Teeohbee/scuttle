@@ -119,10 +119,10 @@ func _ready() -> void:
 	_set_mood(DAY)
 	_sleep()
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	_sync()
 	_swing_lanterns()
-	_life.update()
+	_life.update(delta)
 	pose(_blend)
 
 func _unhandled_input(event: InputEvent) -> void:

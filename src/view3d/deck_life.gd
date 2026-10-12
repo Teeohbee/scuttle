@@ -1,12 +1,13 @@
 class_name DeckLife
 extends Node3D
 # Life on deck that isn't gameplay (look book Volume V): the wheel and binnacle on the quarterdeck, the
-# flag at the stern, the bell at the bow and the parrot on the mainmast top. It reads only where the View3D put the deck, and moves only
+# flag at the stern, the bell at the bow, the parrot on the mainmast top and rats along the rail. It reads only where the View3D put the deck, and moves only
 # when the view calls update(), which it does only while it's in 3D.
 
 const FLAG_STRIPS := 8
 const FLAG_SIZE := Vector2(1.8, 1.2)
 const BRASS := Color("c8962e")
+const RAT_SPEED := 2.4
 
 var _wheel: Node3D
 var _binnacle: Node3D
@@ -15,6 +16,8 @@ var _flag_strips: Array[Node3D] = []
 var _bell: Node3D
 var _parrot: Node3D
 var _parrot_head: Node3D
+var _rats: Array[Node3D] = []
+var _rng := RandomNumberGenerator.new()
 
 func _init(view: View3D) -> void:
 	var r := view.deck_rect()
@@ -88,6 +91,13 @@ func _init(view: View3D) -> void:
 		masts.sort()
 		_build_parrot(view.cell_centre(masts[masts.size() / 2]) + Vector3(0.2, DeckDresser.TOP_HEIGHT + 0.47, 0.52))
 
+	# rats: one on each of the three longest runs of rail between the gun ports
+	_rng.seed = 7
+	var runs := _rail_runs(view, r)
+	runs.sort_custom(func(a, b): return a.y - a.x > b.y - b.x)
+	for k in mini(3, runs.size()):
+		_build_rat(runs[k])
+
 	var still := MeshInstance3D.new()
 	still.mesh = MeshKit.commit(st)
 	add_child(still)
@@ -113,7 +123,10 @@ func parrot() -> Node3D:
 func parrot_head() -> Node3D:
 	return _parrot_head
 
-func update() -> void:
+func rats() -> Array[Node3D]:
+	return _rats
+
+func update(delta: float) -> void:
 	var t := Time.get_ticks_msec() / 1000.0
 	_wheel.rotation.x = sin(t * 0.4) * 0.6 + sin(t * 0.13) * 0.4   # the helmsman nudging her course
 	_bell.rotation.z = sin(t * 1.1) * 0.15
@@ -122,6 +135,18 @@ func update() -> void:
 	if _parrot:   # looks about in jerks, with a twitch, and bobs now and then
 		_parrot_head.rotation.y = sin(floorf(t / 1.1) * 2.7) * 1.0 + sin(t * 5.0) * 0.05
 		_parrot.position.y = _parrot.get_meta("perch") + maxf(0.0, sin(t * 2.3)) ** 8 * 0.04
+	for rat in _rats:   # dash to a spot along the run, sit a while, dash again
+		var run: Vector3 = rat.get_meta("run")   # x from, x to, rail z
+		var pause: float = rat.get_meta("pause") - delta
+		var goal: float = rat.get_meta("goal")
+		if pause > 0.0:
+			rat.set_meta("pause", pause)
+			continue
+		rat.position.x = move_toward(rat.position.x, goal, RAT_SPEED * delta)
+		rat.rotation.y = PI / 2 if goal > rat.position.x else -PI / 2
+		if is_equal_approx(rat.position.x, goal):
+			rat.set_meta("goal", _rng.randf_range(run.x, run.y))
+			rat.set_meta("pause", _rng.randf_range(0.4, 2.5))
 
 # Green with a red head and long blue and red tail feathers, facing out over the deck.
 func _build_parrot(perch: Vector3) -> void:
@@ -145,6 +170,39 @@ func _build_parrot(perch: Vector3) -> void:
 	for side in [-1, 1]:
 		MeshKit.blob(head, Vector3(side * 0.045, 0.015, 0.025), Vector3(0.015, 0.015, 0.015), Color.WHITE, Basis.IDENTITY, 3, 6)
 	_mesh(_parrot_head, head)
+
+# The straight runs of bulwark rail, port and starboard, between the gun ports: (x from, x to, z).
+func _rail_runs(view: View3D, r: Rect2) -> Array[Vector3]:
+	var runs: Array[Vector3] = []
+	for z in [r.position.y - 0.25, r.end.y + 0.25]:
+		var cuts: Array[float] = []
+		for gap in view.bulwark_gaps():
+			if absf(gap.y - z) < 0.5:
+				cuts.append(gap.x)
+		cuts.sort()
+		var from := r.position.x + 2.2
+		for x in cuts:
+			if x - 0.65 > from + 1.0:
+				runs.append(Vector3(from, x - 0.65, z))
+			from = maxf(from, x + 0.65)
+		if r.end.x - 1.0 > from + 1.0:
+			runs.append(Vector3(from, r.end.x - 1.0, z))
+	return runs
+
+func _build_rat(run: Vector3) -> void:
+	var rat := _node(Vector3(_rng.randf_range(run.x, run.y), View3D.BULWARK_HEIGHT + 0.07, run.z))
+	rat.set_meta("run", run)
+	rat.set_meta("goal", rat.position.x)
+	rat.set_meta("pause", _rng.randf_range(0.0, 1.0))
+	var fur := Color("5a5048")
+	var st := MeshKit.begin()
+	MeshKit.blob(st, Vector3(0, 0.05, 0), Vector3(0.05, 0.045, 0.09), fur)
+	MeshKit.blob(st, Vector3(0, 0.06, 0.09), Vector3(0.035, 0.035, 0.05), fur)
+	for side in [-1, 1]:
+		MeshKit.blob(st, Vector3(side * 0.025, 0.095, 0.08), Vector3(0.015, 0.018, 0.006), Color("c89a90"), Basis.IDENTITY, 3, 6)
+	MeshKit.strut(st, Vector3(0, 0.04, -0.08), Vector3(0, 0.02, -0.24), 0.012, Color("c89a90"))
+	_mesh(rat, st)
+	_rats.append(rat)
 
 # A white skull over crossed bones on black.
 func _skull_and_bones() -> ImageTexture:

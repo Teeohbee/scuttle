@@ -55,3 +55,24 @@ func test_the_parrot_perches_on_the_mainmast_top() -> void:
 	assert_float(Vector2(parrot.global_position.x - main.x, parrot.global_position.z - main.z).length()).is_less(0.8)
 	assert_float(parrot.global_position.y).is_between(DeckDresser.TOP_HEIGHT, DeckDresser.TOP_HEIGHT + 0.6)
 	assert_bool(await _moves(func(): return _life.parrot_head().rotation.y)).override_failure_message("the parrot never looks about").is_true()
+
+func test_rats_scurry_along_the_rail_and_never_fall_in_a_gun_port() -> void:
+	await _setup()
+	var rats := _life.rats()
+	assert_int(rats.size()).is_equal(3)
+	var r := _view.deck_rect()
+	var rails := [r.position.y - 0.25, r.end.y + 0.25]
+	var start := rats.map(func(rat): return rat.global_position)
+	for i in 30:
+		await get_tree().create_timer(0.05).timeout
+		for rat in rats:
+			var at: Vector3 = rat.global_position
+			assert_float(at.y).is_equal_approx(View3D.BULWARK_HEIGHT + 0.07, 0.03)
+			assert_bool(rails.any(func(z): return absf(at.z - z) < 0.05)).override_failure_message("rat off the rail at %s" % at).is_true()
+			for gap in _view.bulwark_gaps():
+				assert_float(gap.distance_to(Vector2(at.x, at.z))).override_failure_message("rat in a gun port at %s" % at).is_greater(0.3)
+	var moved := 0
+	for k in rats.size():
+		if rats[k].global_position.distance_to(start[k]) > 0.2:
+			moved += 1
+	assert_int(moved).override_failure_message("the rats sit still").is_greater(0)
