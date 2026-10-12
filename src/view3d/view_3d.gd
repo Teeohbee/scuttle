@@ -8,8 +8,6 @@ extends CanvasLayer
 # angle. In 2D the 3D isn't drawn and doesn't process.
 
 const PX_PER_M := 16.0
-const TILT_SHIFT := 0.08   # blur amount at the game angle
-const FOCUS_DEPTH := 2.5   # metres either side of the deck's middle that stay sharp: the rooms and passage, not the near rail or mast tops
 const ROLL := 0.012   # radians, side to side; pitch is 70% of it
 const HEAVE := 0.08   # metres
 const RENDER_SCALE := 1.0   # the 3D's resolution as a share of the window's: lower is chunkier and cheaper
@@ -103,7 +101,6 @@ var _mirrors := {}   # 2D node -> its 3D stand-in
 var _flames: Array[MeshInstance3D] = []
 var _fire_lights: Array[OmniLight3D] = []
 var _life: DeckLife
-var _focus := 0.0   # how far the camera's focused, in metres
 var _ship: Node3D   # everything aboard, so it rolls together; the camera, sea and enemy stay put
 
 func _ready() -> void:
@@ -218,9 +215,6 @@ func opacity() -> float:
 func camera() -> Camera3D:
 	return _camera
 
-func focus_distance() -> float:
-	return _focus
-
 func camera_tilt() -> float:
 	return Vector3.UP.angle_to(_camera.position - _target())
 
@@ -240,12 +234,6 @@ func pose(b: float) -> void:
 	_camera.far = distance + 150.0
 	_camera.position = _target() + Vector3(0, distance * cos(tilt), distance * sin(tilt))
 	_camera.look_at(_target(), Vector3.FORWARD)
-	# tilt-shift: the deck in focus, the far rail and the near hull side softening, like a model ship
-	_focus = distance
-	var lens := _camera.attributes as CameraAttributesPractical
-	lens.dof_blur_far_distance = distance + FOCUS_DEPTH
-	lens.dof_blur_near_distance = distance - FOCUS_DEPTH
-	lens.dof_blur_amount = TILT_SHIFT * e
 	_roll(e)
 
 # The ship rolls and heaves a little about the middle of the deck, fading in with the tilt, so it holds
@@ -285,12 +273,6 @@ func _smooth(x: float) -> float:
 func _build_stage() -> void:
 	_camera = Camera3D.new()
 	_camera.keep_aspect = Camera3D.KEEP_WIDTH
-	var lens := CameraAttributesPractical.new()
-	lens.dof_blur_far_enabled = true
-	lens.dof_blur_near_enabled = true
-	lens.dof_blur_far_transition = 4.0
-	lens.dof_blur_near_transition = 2.0
-	_camera.attributes = lens
 	_world.add_child(_camera)
 	_sun = DirectionalLight3D.new()
 	_sun.rotation = Vector3(deg_to_rad(-55), deg_to_rad(-30), 0)

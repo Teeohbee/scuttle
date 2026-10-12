@@ -333,18 +333,3 @@ func test_the_ship_holds_still_while_lined_up_with_the_2d() -> void:
 	await drawn_frames(2)
 	view.pose(0.0)
 	assert_that(view.ship().transform).is_equal(Transform3D.IDENTITY)
-
-func test_a_tilt_shift_blur_at_the_game_angle_only() -> void:
-	var deck := load_deck()
-	var view := _view(deck)
-	view.set_3d(true, false)
-	await drawn_frames(2)
-	var attributes := view.camera().attributes as CameraAttributesPractical
-	view.pose(1.0)
-	assert_float(attributes.dof_blur_amount).is_greater(0.0)
-	var focus := view.focus_distance()
-	assert_bool(attributes.dof_blur_far_enabled and attributes.dof_blur_near_enabled).is_true()
-	assert_float(attributes.dof_blur_far_distance).is_greater(focus)
-	assert_float(attributes.dof_blur_near_distance).is_less(focus)
-	view.pose(0.0)
-	assert_float(attributes.dof_blur_amount).override_failure_message("blurred while lined up with the 2D").is_equal(0.0)
