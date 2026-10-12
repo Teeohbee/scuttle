@@ -88,7 +88,7 @@ var _lantern_glass: StandardMaterial3D
 var _night := false
 var _sun: DirectionalLight3D
 var _env: Environment
-var _sea: StandardMaterial3D
+var _sea: SeaModel
 var _floor_count := 0
 var _mirrors := {}   # 2D node -> its 3D stand-in
 var _flames: Array[MeshInstance3D] = []
@@ -184,7 +184,7 @@ func _set_mood(mood: Dictionary) -> void:
 	_env.fog_light_color = mood.sky
 	_sun.light_color = mood.sun
 	_sun.light_energy = mood.sun_energy
-	_sea.albedo_color = mood.sea
+	_sea.set_color(mood.sea)
 	for light in _lanterns:
 		light.light_energy = LANTERN_ENERGY if mood.lanterns else 0.0
 	_lantern_glass.emission_enabled = mood.lanterns
@@ -229,6 +229,7 @@ func pose(b: float) -> void:
 	_camera.look_at(_target(), Vector3.FORWARD)
 	_roll(e)
 	_pose_enemy(e)
+	_sea.sway(e)
 
 # The ship rolls and heaves a little about the middle of the deck, fading in with the tilt, so it holds
 # dead still while the view lines up with the 2D. Only the 3D moves: the 2D game never knows.
@@ -301,11 +302,8 @@ func _build_stage() -> void:
 	var world_env := WorldEnvironment.new()
 	world_env.environment = _env
 	_world.add_child(world_env)
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(400, 400)
-	var sea := _mesh(plane, Vector3(0, -0.8, 0), Color.WHITE)
-	_sea = sea.material_override
-	_world.add_child(sea)
+	_sea = SeaModel.new()
+	_world.add_child(_sea)
 
 func mirror_of(node: Node) -> Node3D:
 	return _mirrors.get(node)
@@ -337,6 +335,9 @@ func lanterns() -> Array[OmniLight3D]:
 
 func shroud_feet() -> PackedVector3Array:
 	return _shroud_feet
+
+func sea() -> SeaModel:
+	return _sea
 
 func ship() -> Node3D:
 	return _ship
@@ -721,6 +722,7 @@ func _sync() -> void:
 		var foe: EnemyModel = _place(enemy, func(): return _enemy_mirror(), _world)
 		foe.position.z -= ENEMY_STANDOFF
 		foe.show_hull(enemy.hull_hp / enemy.max_hull_hp)
+		_sea.foam_round(_outline, foe.waterline())
 	_sync_flames()
 
 func _enemy_mirror() -> EnemyModel:

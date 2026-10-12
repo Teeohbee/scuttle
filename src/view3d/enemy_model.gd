@@ -9,7 +9,7 @@ extends Node3D
 
 const LENGTH := 12.0
 const BEAM := 3.6
-const KEEL := -1.0         # below the sea, which sits at -0.8
+const KEEL := -1.4         # deep enough that no trough bares it
 const DECK := 0.3
 const BULWARK := 0.75
 const PAINT := Color(0.16, 0.26, 0.42)   # inboard, and the pennant: navy where ours is red
@@ -99,6 +99,14 @@ func wear_marks() -> int:
 
 func masts() -> int:
 	return MASTS.size()
+
+# The hull's edge where it meets the sea, in world (x, z).
+func waterline() -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for p in _outline:
+		var at := global_transform * Vector3(p.x, 0, p.y)
+		out.append(Vector2(at.x, at.z))
+	return out
 
 # Each gun's muzzle, in world space.
 func gun_ports() -> PackedVector3Array:
