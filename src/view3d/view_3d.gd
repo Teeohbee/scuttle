@@ -55,14 +55,6 @@ const ROOM_COLORS := {
 	"lumberStore": Color(0.54, 0.45, 0.27),
 }
 
-const STATION_COLORS := {
-	"cannon": Color(0.18, 0.18, 0.2),
-	"magazine": Color(0.45, 0.16, 0.12),
-	"shot_locker": Color(0.25, 0.25, 0.28),
-	"water_butt": Color(0.3, 0.55, 0.8),
-	"pump": Color(0.4, 0.4, 0.42),
-	"lumber_crate": Color(0.62, 0.45, 0.26),
-}
 const ITEM_COLORS := {
 	Carryable.Kind.POWDER: Color(0.45, 0.2, 0.15),
 	Carryable.Kind.SHOT: Color(0.15, 0.15, 0.17),
@@ -578,7 +570,11 @@ func _build_deck() -> void:
 	floor.material_override.vertex_color_use_as_albedo = true
 	floor.material_override.vertex_color_is_srgb = true
 	_ship.add_child(floor)
-	_dresser = DeckDresser.new(hull, _quarterdeck_column, cell_centre)
+	var guns: Array[Vector2i] = []
+	for s in get_tree().get_nodes_in_group("stations"):
+		if "phase" in s:
+			guns.append(hull.local_to_map(hull.to_local(s.global_position)))
+	_dresser = DeckDresser.new(hull, _quarterdeck_column, cell_centre, guns)
 	var dressing := MeshInstance3D.new()
 	dressing.mesh = _dresser.mesh()
 	_ship.add_child(dressing)
@@ -702,11 +698,13 @@ func _sync() -> void:
 		monkey.animate(get_process_delta_time(), c.held_item != null)
 	for s in get_tree().get_nodes_in_group("stations"):
 		if s is Station:
-			var m := _place(s, func(): return _station_mirror(s))
+			var m: StationModel = _place(s, func(): return _station_mirror(s))
 			if "phase" in s:   # cannons: the lamp is how players read what a gun needs next
-				var lamp: StandardMaterial3D = m.get_node("Lamp").material_override
+				var lamp: StandardMaterial3D = m.lamp.material_override
 				lamp.albedo_color = s.PHASE_COLORS[s.phase]
 				lamp.emission = lamp.albedo_color
+			elif s is Pump:
+				m.work_pump(s.manned, get_process_delta_time())
 	for item in get_tree().get_nodes_in_group("carryables"):
 		var m := _place(item, func(): return _box(Vector3(0.3, 0.3, 0.3), Color.WHITE))
 		m.position.y = HELD_HEIGHT if item.held else 0.0
@@ -762,20 +760,12 @@ func _sync_flames() -> void:
 			light.position = to_3d(fire.world_of(cells[i])) + Vector3(0, 1.0, 0)
 			light.light_energy = FIRE_LIGHT_ENERGY * (0.75 + 0.25 * sin(t * 13.0 + i * 2.1) * sin(t * 7.3 + i))
 
-func _station_color(station: Node) -> Color:
-	return STATION_COLORS.get(station.scene_file_path.get_file().get_basename(), Color.GRAY)
-
-func _station_mirror(station: Node) -> Node3D:
-	var root := _box(Vector3(0.8, 0.6, 0.8), _station_color(station))
-	if "phase" in station:
-		var cube := BoxMesh.new()
-		cube.size = Vector3(0.3, 0.12, 0.3)
-		var lamp := _mesh(cube, Vector3(0, 0.66, 0), Color.GRAY)
-		lamp.name = "Lamp"
-		lamp.material_override.emission_enabled = true
-		lamp.material_override.emission_energy_multiplier = 1.5
-		root.add_child(lamp)
-	return root
+# Each station's model, turned so its +z points out to the nearer side: cannons aim through their port.
+func _station_mirror(station: Node) -> StationModel:
+	var model := StationModel.new(station.scene_file_path.get_file().get_basename())
+	if to_3d(station.global_position).z < deck_rect().get_center().y:
+		model.rotation.y = PI
+	return model
 
 func _box(size: Vector3, color: Color) -> Node3D:
 	var root := Node3D.new()

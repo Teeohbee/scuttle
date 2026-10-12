@@ -45,6 +45,19 @@ func test_every_wall_beside_walkable_floor_is_dressed() -> void:
 	assert_array(bare).override_failure_message("walls players walk into with nothing drawn: %s" % [bare]).is_empty()
 	assert_array(dressed_for_nothing).override_failure_message("dressed walls no one can reach: %s" % [dressed_for_nothing]).is_empty()
 
+func test_each_gun_has_a_clear_line_to_its_port() -> void:
+	await _setup()
+	var guns := get_tree().get_nodes_in_group("cannons")
+	assert_array(guns).has_size(3)
+	for gun in guns:
+		var cell := _hull.local_to_map(_hull.to_local(gun.global_position))
+		var ports := _dresser.gun_port_cells(cell)
+		assert_array(ports).override_failure_message("gun at %s has no wall to its port" % cell).is_not_empty()
+		for port in ports:
+			assert_int(port.x).is_equal(cell.x)
+			assert_int(_dresser.kind_of(port)).override_failure_message("%s stands in front of the gun at %s" % [port, cell]) \
+				.is_equal(DeckDresser.Kind.GUN_PORT)
+
 func test_edge_pieces_face_the_room_they_belong_to() -> void:
 	await _setup()
 	var edges := _walls().filter(func(c): return _dresser.kind_of(c) == DeckDresser.Kind.EDGE)

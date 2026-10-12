@@ -8,11 +8,12 @@ extends RefCounted
 #            the ship's boat on chocks, a hatch grating or cargo lashed under canvas
 #   MAST     stands alone, with no wall beside it: a lower mast with a fife rail and a fighting top
 #   BITT     meets only the passage: a stout post with a coil, filling the tile
+#   GUN_PORT between a gun and its port: only low breeching tackle, so the barrel has a clear line out
 #   NONE     touches no floor, so nobody can reach it: bare deck
 # Where an edge piece meets a doorway off the passage, a tall gangway post frames the way through.
 # Everything is baked into one vertex-coloured mesh.
 
-enum Kind { NONE, EDGE, DIVIDER, BITT, MAST }
+enum Kind { NONE, EDGE, DIVIDER, BITT, MAST, GUN_PORT }
 
 const SIDES: Array[Vector2i] = [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]
 
@@ -44,13 +45,17 @@ var _posts: Array[Dictionary] = []   # {cell, side}: a gangway post on that side
 var _dividers: Array[Dictionary] = []   # {cells, along, style}: one run of divider tiles
 var _mesh: ArrayMesh
 
-func _init(hull: TileMapLayer, quarterdeck_column: int, centre_of: Callable) -> void:
+func _init(hull: TileMapLayer, quarterdeck_column: int, centre_of: Callable, guns: Array[Vector2i] = []) -> void:
 	_hull = hull
 	_quarterdeck_column = quarterdeck_column
 	_centre_of = centre_of
 	for cell in hull.get_used_cells():
 		if _is_wall(cell) and not is_under_quarterdeck(cell):
 			_pieces[cell] = _classify(cell)
+	for gun in guns:
+		for cell in gun_port_cells(gun):
+			if _pieces.has(cell):
+				_pieces[cell] = {kind = Kind.GUN_PORT, facing = -_outboard(gun)}
 	for cell: Vector2i in _pieces:
 		if kind_of(cell) == Kind.EDGE:
 			for side in SIDES:
@@ -79,6 +84,19 @@ func masts() -> Array[Vector2i]:
 		if kind_of(cell) == Kind.MAST:
 			out.append(cell)
 	return out
+
+# The wall tiles between a gun and the side of the ship it faces.
+func gun_port_cells(gun: Vector2i) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	var cell := gun + _outboard(gun)
+	while _hull.get_used_rect().has_point(cell):
+		if _is_wall(cell):
+			out.append(cell)
+		cell += _outboard(gun)
+	return out
+
+func _outboard(gun: Vector2i) -> Vector2i:
+	return Vector2i.UP if gun.y < _hull.get_used_rect().get_center().y else Vector2i.DOWN
 
 func is_under_quarterdeck(cell: Vector2i) -> bool:
 	return cell.x >= _quarterdeck_column
@@ -152,6 +170,9 @@ func _build() -> ArrayMesh:
 				_bitt(st, at)
 			Kind.MAST:
 				_mast(st, at)
+			Kind.GUN_PORT:
+				var f: Vector2i = piece.facing
+				_gun_tackle(st, at, Basis(Vector3.UP, atan2(f.x, f.y)))
 	for run in _dividers:
 		var centre := Vector3.ZERO
 		for cell in run.cells:
@@ -225,6 +246,17 @@ func _bitt(st: SurfaceTool, at: Vector3) -> void:
 	MeshKit.box(st, at + Vector3(0, 1.04, 0), Vector3(0.5, 0.08, 0.5), CAP)
 	MeshKit.torus(st, at + Vector3(0, 1.12, 0), 0.16, 0.035, ROPE)
 	MeshKit.torus(st, at + Vector3(0, 1.17, 0), 0.11, 0.035, ROPE)
+
+# Breeching tackle either side of a gun's line: ring bolts in the deck and a coil of rope, all kept
+# low so nothing stands between the barrel and its port.
+func _gun_tackle(st: SurfaceTool, at: Vector3, basis: Basis) -> void:
+	for side in [-1, 1]:
+		var bolt := at + basis * Vector3(side * 0.36, 0, 0.3)
+		MeshKit.cylinder(st, bolt, 0.03, 0.04, 6, IRON)
+		MeshKit.torus(st, bolt + Vector3(0, 0.05, 0), 0.05, 0.012, IRON)
+		var coil := at + basis * Vector3(side * 0.34, 0, -0.15)
+		MeshKit.torus(st, coil + Vector3(0, 0.035, 0), 0.14, 0.035, ROPE)
+		MeshKit.torus(st, coil + Vector3(0, 0.08, 0), 0.09, 0.035, ROPE)
 
 # Divider furniture: centred on the run, local +z along it, `length` in metres.
 
