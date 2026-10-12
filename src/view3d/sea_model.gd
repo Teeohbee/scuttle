@@ -36,22 +36,7 @@ float waves(vec2 p, float t) {
 	return %s;
 }
 
-// How far p is from the hull's edge, if it's anywhere near; outside the box it's far enough.
-float edge(vec2 p, vec2 outline[64], int count, vec4 box) {
-	if (count == 0 || any(lessThan(p, box.xy - foam_width)) || any(greaterThan(p, box.zw + foam_width))) {
-		return 1e3;
-	}
-	float d = 1e3;
-	for (int i = 0; i < count; i++) {
-		vec2 a = outline[i];
-		vec2 b = outline[(i + 1) %% count];
-		vec2 ab = b - a;
-		float k = clamp(dot(p - a, ab) / dot(ab, ab), 0.0, 1.0);
-		d = min(d, length(p - a - ab * k));
-	}
-	return d;
-}
-
+%s
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	float h = waves(world.xz, time) * swell;
@@ -61,7 +46,7 @@ void vertex() {
 
 void fragment() {
 	NORMAL = normalize(cross(dFdy(VERTEX), dFdx(VERTEX)));   // flat facets
-	float d = min(edge(world.xz, ours, ours_count, ours_box), edge(world.xz, theirs, theirs_count, theirs_box));
+	float d = min(edge_ours(world.xz), edge_theirs(world.xz));
 	float lap = foam_width * (0.75 + 0.25 * sin(time * 1.4 + world.x * 0.9 + world.z * 0.6));
 	float flecks = step(0.25, sin(world.x * 2.3 + time) * sin(world.z * 2.9 - time * 0.7));
 	float foam = max(step(d, lap) * 0.4, step(d, lap * 1.8) * flecks * 0.25);   // a wash, then broken flecks
@@ -69,6 +54,23 @@ void fragment() {
 	ALBEDO = mix(sea, vec3(0.85, 0.9, 0.92), foam);
 	ROUGHNESS = mix(0.35, 0.9, foam);
 	SPECULAR = 0.4;
+}
+"""
+
+# How far p is from a hull's edge, if it's anywhere near; outside the box it's far enough. One copy per
+# hull reads its uniforms in place: passed as a function argument, each 64-point outline was copied for
+# every pixel of sea, and that cost more than the rest of the frame put together.
+const EDGE := """float edge_{hull}(vec2 p) {
+	if ({hull}_count == 0 || any(lessThan(p, {hull}_box.xy - foam_width)) || any(greaterThan(p, {hull}_box.zw + foam_width))) {
+		return 1e3;
+	}
+	float d = 1e3;
+	for (int i = 0; i < {hull}_count; i++) {
+		vec2 a = {hull}[i];
+		vec2 ab = {hull}[(i + 1) %% {hull}_count] - a;
+		d = min(d, length(p - a - ab * clamp(dot(p - a, ab) / dot(ab, ab), 0.0, 1.0)));
+	}
+	return d;
 }
 """
 
@@ -90,7 +92,8 @@ func _init() -> void:
 	for i in WAVES.size():
 		var w: Vector4 = WAVES[i]
 		sum.append("%f * sin(dot(p, vec2(%f, %f)) - %f * t + %f)" % [w.w, w.x, w.y, w.z, PHASES[i]])
-	shader.code = SHADER % [" + ".join(sum), SWELL]
+	var edges := (EDGE.format({hull = "ours"}) + "\n" + EDGE.format({hull = "theirs"})).replace("%%", "%")
+	shader.code = SHADER % [" + ".join(sum), edges, SWELL]
 	_material.shader = shader
 	_material.set_shader_parameter("foam_width", FOAM)
 	material_override = _material
