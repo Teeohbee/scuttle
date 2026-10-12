@@ -68,7 +68,7 @@ func test_rats_scurry_along_the_rail_and_never_fall_in_a_gun_port() -> void:
 		await get_tree().create_timer(0.05).timeout
 		for rat in rats:
 			var at: Vector3 = _view.ship().to_local(rat.global_position)   # the rail, not wherever the roll has taken it
-			assert_float(at.y).is_equal_approx(View3D.BULWARK_HEIGHT + 0.07, 0.03)
+			assert_float(at.y).override_failure_message("rat inside the hammocks at %s" % at).is_equal_approx(DeckClutter.hammock_top(), 0.03)
 			assert_bool(rails.any(func(z): return absf(at.z - z) < 0.05)).override_failure_message("rat off the rail at %s" % at).is_true()
 			for gap in _view.bulwark_gaps():
 				assert_float(gap.distance_to(Vector2(at.x, at.z))).override_failure_message("rat in a gun port at %s" % at).is_greater(0.3)

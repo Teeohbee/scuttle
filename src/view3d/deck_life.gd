@@ -93,9 +93,9 @@ func _init(view: View3D) -> void:
 		masts.sort()
 		_build_parrot(view.cell_centre(masts[masts.size() / 2]) + Vector3(0.2, DeckDresser.TOP_HEIGHT + 0.47, 0.52))
 
-	# rats: one on each of the three longest runs of rail between the gun ports
+	# rats: one on each of the three longest runs of rail between the gun ports, along the stowed hammocks
 	_rng.seed = 7
-	var runs := _rail_runs(view, r)
+	var runs := view.rail_runs()
 	runs.sort_custom(func(a, b): return a.y - a.x > b.y - b.x)
 	for k in mini(3, runs.size()):
 		_build_rat(runs[k])
@@ -181,26 +181,8 @@ func _build_parrot(perch: Vector3) -> void:
 		MeshKit.blob(head, Vector3(side * 0.045, 0.015, 0.025), Vector3(0.015, 0.015, 0.015), Color.WHITE, Basis.IDENTITY, 3, 6)
 	_mesh(_parrot_head, head)
 
-# The straight runs of bulwark rail, port and starboard, between the gun ports: (x from, x to, z).
-func _rail_runs(view: View3D, r: Rect2) -> Array[Vector3]:
-	var runs: Array[Vector3] = []
-	for z in [r.position.y - 0.25, r.end.y + 0.25]:
-		var cuts: Array[float] = []
-		for gap in view.bulwark_gaps():
-			if absf(gap.y - z) < 0.5:
-				cuts.append(gap.x)
-		cuts.sort()
-		var from := r.position.x + 2.2
-		for x in cuts:
-			if x - 0.65 > from + 1.0:
-				runs.append(Vector3(from, x - 0.65, z))
-			from = maxf(from, x + 0.65)
-		if r.end.x - 1.0 > from + 1.0:
-			runs.append(Vector3(from, r.end.x - 1.0, z))
-	return runs
-
 func _build_rat(run: Vector3) -> void:
-	var rat := _node(Vector3(_rng.randf_range(run.x, run.y), View3D.BULWARK_HEIGHT + 0.07, run.z))
+	var rat := _node(Vector3(_rng.randf_range(run.x, run.y), DeckClutter.hammock_top(), run.z))
 	rat.set_meta("run", run)
 	rat.set_meta("goal", rat.position.x)
 	rat.set_meta("pause", _rng.randf_range(0.0, 1.0))
