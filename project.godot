@@ -31,6 +31,10 @@ window/stretch/mode="viewport"
 window/stretch/aspect="keep_width"
 window/stretch/scale_mode="integer"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gdUnit4/plugin.cfg")
+
 [gui]
 
 theme/custom="res://src/ui/theme.tres"
