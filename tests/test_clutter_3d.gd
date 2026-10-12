@@ -54,3 +54,17 @@ func test_hammocks_are_stowed_along_the_rail_clear_of_the_gun_ports() -> void:
 	for side in rails:
 		var row := hammocks.filter(func(h): return absf(h.z - side) < 0.01)
 		assert_int(row.size()).override_failure_message("no hammocks along one side").is_greater(10)
+
+func test_a_windlass_spans_the_bow_clear_of_the_bell_and_the_gangway() -> void:
+	var view: View3D = await _view()
+	var windlass := view.clutter().windlass()
+	var mid := view.deck_rect().get_center().y
+	assert_float(windlass.size.z).override_failure_message("the windlass is too short to see").is_greater(3.0)
+	assert_bool(windlass.position.z < mid and windlass.end.z > mid).override_failure_message("the windlass is off the centreline").is_true()
+	var bell := view.life().bell().position
+	assert_bool(bell.x < windlass.position.x - 0.3 or bell.x > windlass.end.x + 0.3).override_failure_message("the windlass runs into the bell").is_true()
+	for post in view.dresser().gangway_posts():
+		var at := view.cell_centre(post.cell)
+		assert_float(at.x).override_failure_message("the windlass is aft of a gangway post").is_greater(windlass.end.x)
+	for cell in view.dresser().masts():
+		assert_float(view.cell_centre(cell).x).is_greater(windlass.end.x)
