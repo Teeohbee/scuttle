@@ -570,7 +570,11 @@ func _build_deck() -> void:
 	floor.material_override.vertex_color_use_as_albedo = true
 	floor.material_override.vertex_color_is_srgb = true
 	_ship.add_child(floor)
-	_dresser = DeckDresser.new(hull, _quarterdeck_column, cell_centre)
+	var guns: Array[Vector2i] = []
+	for s in get_tree().get_nodes_in_group("stations"):
+		if "phase" in s:
+			guns.append(hull.local_to_map(hull.to_local(s.global_position)))
+	_dresser = DeckDresser.new(hull, _quarterdeck_column, cell_centre, guns)
 	var dressing := MeshInstance3D.new()
 	dressing.mesh = _dresser.mesh()
 	_ship.add_child(dressing)
