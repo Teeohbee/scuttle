@@ -1,0 +1,53 @@
+name: Linux build
+
+# Pull requests get a downloadable artifact; pushing a v* tag publishes a
+# GitHub Release, which steam-machine/launch.sh picks up on the next launch.
+on:
+  pull_request:
+  push:
+    tags: ["v*"]
+
+env:
+  # Must match the editor version exactly, or the export templates won't load
+  GODOT_VERSION: 4.7.1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Godot and export templates
+        run: |
+          base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -fsSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$dest"
+          unzip -q templates.tpz -d templates
+          mv templates/templates/* "$dest/"
+          rm -rf godot.zip templates.tpz templates
+
+      - name: Export
+        run: |
+          mkdir -p build
+          godot --headless --import --path .
+          godot --headless --path . --export-release "Linux" build/Scuttle.x86_64
+          test -s build/Scuttle.x86_64
+
+      - name: Upload artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: Scuttle-linux
+          path: build/Scuttle.x86_64
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" build/Scuttle.x86_64 --generate-notes
