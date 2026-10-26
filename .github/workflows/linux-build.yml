@@ -1,7 +1,7 @@
 name: Linux build
 
 # Pull requests get a downloadable artifact; pushing a v* tag publishes a
-# GitHub Release, which steam-machine/launch.sh picks up on the next launch.
+# GitHub Release, which the steam-tools launcher picks up on the next launch.
 on:
   pull_request:
   push:
