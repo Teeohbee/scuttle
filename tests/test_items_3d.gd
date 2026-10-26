@@ -1,5 +1,5 @@
 extends DeckSuite
-# In 3D, what a monkey carries is a thing, not a coloured box: a powder keg, a stack of shot, a plank,
+# In 3D, what a crab carries is a thing, not a coloured box: a powder keg, a stack of shot, a plank,
 # a bucket with or without water. You can tell each apart at a glance, and a bucket fills when it's filled.
 
 const KINDS := [Carryable.Kind.POWDER, Carryable.Kind.SHOT, Carryable.Kind.PLANK,
@@ -36,7 +36,7 @@ func test_each_kind_is_its_own_thing_not_a_box() -> void:
 		assert_bool(looks.has(look)).override_failure_message("%s looks like another kind" % Carryable.Kind.keys()[kind]).is_false()
 		looks.append(look)
 
-func test_each_fits_in_a_monkeys_arms() -> void:
+func test_each_fits_in_a_crabs_claws() -> void:
 	for kind in KINDS:
 		var model: ItemModel = auto_free(ItemModel.new())
 		model.show_kind(kind)

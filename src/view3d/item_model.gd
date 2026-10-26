@@ -1,6 +1,6 @@
 class_name ItemModel
 extends Node3D
-# Something a monkey carries, standing on its base: a powder keg, a stack of shot, a pair of planks,
+# Something a crab carries, standing on its base: a powder keg, a stack of shot, a pair of planks,
 # or a bucket, full or empty. Each kind keeps its 2D colour, so the two views read the same.
 
 const COLORS := {
