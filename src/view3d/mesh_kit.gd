@@ -89,6 +89,12 @@ static func lathe(st: SurfaceTool, base: Vector3, profile: PackedVector2Array, s
 			tri(st, centre, base + basis * Vector3(cos(a1) * last.x, last.y, sin(a1) * last.x),
 				base + basis * Vector3(cos(a0) * last.x, last.y, sin(a0) * last.x), colors[colors.size() - 1] if colors.size() > 0 else color)
 
+# A round bar from a to b that tapers from radius r0 to r1: limbs, stalks, pipes.
+static func tube(st: SurfaceTool, a: Vector3, b: Vector3, r0: float, r1: float, color: Color, sides := 8) -> void:
+	var along := b - a
+	var basis := Basis(Quaternion(Vector3.UP, along.normalized()))
+	lathe(st, a, PackedVector2Array([Vector2(r0, 0), Vector2(r1, along.length())]), sides, color, basis)
+
 static func cylinder(st: SurfaceTool, base: Vector3, radius: float, height: float, sides: int, color: Color, basis := Basis.IDENTITY) -> void:
 	lathe(st, base, PackedVector2Array([Vector2(radius, 0), Vector2(radius, height)]), sides, color, basis)
 

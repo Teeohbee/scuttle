@@ -11,7 +11,7 @@ const PX_PER_M := 16.0
 const ROLL := 0.012   # radians, side to side; pitch is 70% of it
 const HEAVE := 0.08   # metres
 const RENDER_SCALE := 1.0   # the 3D's resolution as a share of the window's: lower is chunkier and cheaper
-const HELD_HEIGHT := 1.65   # carried items ride above the monkey's hat
+const HELD_HEIGHT := PirateCrab.HELD_HEIGHT   # carried items ride between the crab's raised claws
 const ENEMY_STANDOFF := 1.0   # metres of sea between the enemy and its 2D spot, so its broadside clears our rail
 const SWITCH_TIME := 1.2
 const FADE_SHARE := 0.3          # first 30% of the switch is the crossfade
@@ -791,8 +791,8 @@ func _sync() -> void:
 			_mirrors[node].queue_free()
 			_mirrors.erase(node)
 	for c in get_tree().get_nodes_in_group("crew"):
-		var monkey: Monkey = _place(c, func(): return Monkey.new(c.accent, _mirrors.size()))
-		monkey.animate(get_process_delta_time(), c.held_item != null)
+		var crab: PirateCrab = _place(c, func(): return PirateCrab.new(c.accent, _mirrors.size()))
+		crab.animate(get_process_delta_time(), c.held_item != null)
 	for s in get_tree().get_nodes_in_group("stations"):
 		if s is Station:
 			var m: StationModel = _place(s, func(): return _station_mirror(s))
