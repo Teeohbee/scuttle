@@ -31,11 +31,15 @@ func _physics_process(delta: float) -> void:
 		_elapsed = 0.0
 		_hand_to(user)
 
+# How far through the hold the crew member here is, 0 to 1; 0 when nobody is holding.
+func hold_progress() -> float:
+	return minf(_elapsed / hold_duration, 1.0)
+
 func _draw_bar() -> void:
 	if _elapsed <= 0.0:
 		return
 	_bar.draw_rect(Rect2(BAR_OFFSET, BAR_SIZE), Color(0, 0, 0, 0.6))
-	var fill := Vector2(BAR_SIZE.x * minf(_elapsed / hold_duration, 1.0), BAR_SIZE.y)
+	var fill := Vector2(BAR_SIZE.x * hold_progress(), BAR_SIZE.y)
 	_bar.draw_rect(Rect2(BAR_OFFSET, fill), Color.WHITE)
 
 # The first crew member in reach who is holding interact. Crew who are merely
