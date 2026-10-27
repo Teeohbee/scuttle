@@ -27,10 +27,14 @@ const E := [40, 44, 47]
 const CHORDS := [AM, G, AM, E, AM, G, E, AM]
 const CADENCE_BARS := [7, 15]
 
-# beats_per_minute counts the two big beats in each bar, not the eighths.
+# beats_per_minute counts the two big beats in each bar, not the eighths. The harbour is the join
+# screen's, slower and sparser; the rest are for the deck.
 const TRACKS := {
-	"accordion": {"beats_per_minute": 120, "melody_voice": "accordion", "busyness": 0.6, "seed": 7},
-	"fiddle": {"beats_per_minute": 132, "melody_voice": "fiddle", "busyness": 0.75, "seed": 19},
+	"harbour": {"beats_per_minute": 96, "melody_voice": "accordion", "busyness": 0.35, "seed": 3},
+	"broadside": {"beats_per_minute": 120, "melody_voice": "accordion", "busyness": 0.6, "seed": 7},
+	"boarding": {"beats_per_minute": 132, "melody_voice": "fiddle", "busyness": 0.75, "seed": 19},
+	"grog": {"beats_per_minute": 126, "melody_voice": "accordion", "busyness": 0.7, "seed": 31},
+	"powder_monkey": {"beats_per_minute": 138, "melody_voice": "fiddle", "busyness": 0.8, "seed": 42},
 }
 
 static func slot_seconds(track: Dictionary) -> float:
