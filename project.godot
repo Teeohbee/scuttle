@@ -21,6 +21,7 @@ Fx="*uid://wpxupem2eygu"
 GameState="*uid://cocr7q3qhr32i"
 PlayerRegistry="*uid://deosfebh5rtjk"
 FpsCounter="*res://src/ui/fps_counter.gd"
+Music="*res://src/audio/music.gd"
 
 [display]
 
