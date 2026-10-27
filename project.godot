@@ -22,6 +22,7 @@ GameState="*uid://cocr7q3qhr32i"
 PlayerRegistry="*uid://deosfebh5rtjk"
 FpsCounter="*res://src/ui/fps_counter.gd"
 Music="*res://src/audio/music.gd"
+Sound="*res://src/audio/sound.gd"
 
 [display]
 

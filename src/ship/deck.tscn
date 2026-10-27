@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" path="res://src/ui/hud.tscn" id="12_hud"]
 [ext_resource type="PackedScene" path="res://src/ui/scoreboard.tscn" id="13_scoreboard"]
 [ext_resource type="Script" path="res://src/view3d/view_3d.gd" id="14_view3d"]
+[ext_resource type="Script" path="res://src/audio/deck_sounds.gd" id="15_sounds"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bsfh8"]
 texture = ExtResource("1_ypksv")
@@ -1176,5 +1177,10 @@ fire = NodePath("../Fire")
 script = ExtResource("14_view3d")
 camera_2d = NodePath("../Camera2D")
 hull = NodePath("../Hull")
+fire = NodePath("../Fire")
+enemy = NodePath("../EnemyShip")
+
+[node name="DeckSounds" type="Node" parent="." node_paths=PackedStringArray("fire", "enemy")]
+script = ExtResource("15_sounds")
 fire = NodePath("../Fire")
 enemy = NodePath("../EnemyShip")
