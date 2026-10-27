@@ -91,6 +91,7 @@ var _mirrors := {}   # 2D node -> its 3D stand-in
 var _flames: Array[MeshInstance3D] = []
 var _fire_lights: Array[OmniLight3D] = []
 var _life: DeckLife
+var _hold_bars: HoldBars
 var _ship: Node3D   # everything aboard, so it rolls together; the camera, sea and enemy stay put
 
 func _ready() -> void:
@@ -108,6 +109,8 @@ func _ready() -> void:
 	_viewport.add_child(_world)
 	_ship = Node3D.new()
 	_world.add_child(_ship)
+	_hold_bars = HoldBars.new(self)   # after the container, so drawn over the 3D
+	add_child(_hold_bars)
 	_build_stage()
 	_build_hull()
 	_build_bulwark()
@@ -136,6 +139,7 @@ func _process(delta: float) -> void:
 	_swing_lanterns()
 	_life.update(delta)
 	pose(_blend)
+	_hold_bars.update()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_view"):
@@ -249,6 +253,7 @@ func _pose_enemy(amount: float) -> void:
 func _apply(b: float) -> void:
 	_blend = b
 	_container.modulate.a = _smooth(b / FADE_SHARE)
+	_hold_bars.modulate.a = _container.modulate.a
 	pose(b)
 
 func _wake() -> void:
@@ -256,11 +261,13 @@ func _wake() -> void:
 	_sync()
 	_apply(_blend)
 	_container.visible = true
+	_hold_bars.visible = true
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	set_process(true)
 
 func _sleep() -> void:
 	_container.visible = false
+	_hold_bars.visible = false
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	set_process(false)
 
@@ -375,6 +382,9 @@ func sea() -> SeaModel:
 
 func ship() -> Node3D:
 	return _ship
+
+func hold_bars() -> HoldBars:
+	return _hold_bars
 
 func life() -> DeckLife:
 	return _life
