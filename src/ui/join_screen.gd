@@ -3,6 +3,7 @@ extends Control
 var _bots := false
 
 func _ready() -> void:
+	Music.play(Music.HARBOUR)
 	_refresh()
 
 func _physics_process(_delta: float) -> void:

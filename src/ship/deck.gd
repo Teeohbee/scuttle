@@ -14,6 +14,7 @@ const SPAWN_POSITIONS: Array[Vector2] = [
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	Music.play(Music.BATTLE)
 	_jobs.fire = $Fire
 	add_child(_jobs)
 	var roster := PlayerRegistry.players()
