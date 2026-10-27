@@ -1,7 +1,8 @@
 class_name Synth
 extends RefCounted
 # A tiny synthesiser: sounds are added into a buffer of samples one note at a time, then the buffer
-# becomes an AudioStreamWAV. Ported from Paint Puddle, with reedier voices for sea shanties.
+# becomes an AudioStreamWAV. Ported from Paint Puddle, with reedier voices for sea shanties and
+# noisier ones for cannon, fire and timber.
 
 const MIX_RATE := 22050
 const VIBRATO_HZ := 5.5
@@ -28,7 +29,8 @@ static func to_stream(buffer: PackedFloat32Array, loops: bool = false) -> AudioS
 static func note_frequency(midi_note: int) -> float:
 	return 440.0 * pow(2.0, (midi_note - 69) / 12.0)
 
-# Voices: "accordion", "fiddle", "bass", "stab" (a short squeeze of accordion for the oom-pah's pah).
+# Voices: "accordion", "fiddle", "bass", "stab" (a short squeeze of accordion for the oom-pah's pah),
+# "bell" (a ship's bell: overtones that don't line up with the note, which is what makes it clang).
 static func add_note(buffer: PackedFloat32Array, start: float, frequency: float, duration: float,
 		voice: String, volume: float) -> void:
 	var first := int(start * MIX_RATE)
@@ -60,6 +62,10 @@ static func voice_sample(voice: String, frequency: float, time: float, duration:
 			for n in range(1, 9):
 				saw += sin(bowed * n) / n
 			return minf(time / 0.05, 1.0) * release * saw * 0.55
+		"bell":
+			var clang := sin(phase) * exp(-time * 2.5) + 0.6 * sin(phase * 2.76) * exp(-time * 4.0) \
+				+ 0.35 * sin(phase * 5.4) * exp(-time * 7.0) + 0.2 * sin(phase * 8.93) * exp(-time * 12.0)
+			return minf(time / 0.002, 1.0) * release * clang * 0.5
 		"bass":
 			var triangle := 2.0 * absf(2.0 * fposmod(frequency * time, 1.0) - 1.0) - 1.0
 			return minf(time / 0.006, 1.0) * release * triangle * exp(-time * 4.0)
@@ -95,3 +101,38 @@ static func add_tambourine(buffer: PackedFloat32Array, start: float, volume: flo
 		average = lerpf(average, noise, 0.3)
 		var how_far := float(offset) / length
 		buffer[first + offset] += (noise - average) * exp(-how_far * 5.0) * volume
+
+# A pure tone sliding from one pitch to another and dying away: a thump when it falls, a squeak or a
+# bubble when it rises.
+static func add_slide(buffer: PackedFloat32Array, start: float, from_hz: float, to_hz: float, duration: float,
+		volume: float) -> void:
+	var first := int(start * MIX_RATE)
+	var length := int(duration * MIX_RATE)
+	var phase := 0.0
+	for offset in length:
+		if first + offset >= buffer.size():
+			return
+		var how_far := float(offset) / length
+		phase += TAU * lerpf(from_hz, to_hz, how_far) / MIX_RATE
+		buffer[first + offset] += sin(phase) * minf(offset / 60.0, 1.0) * (1.0 - how_far) * (1.0 - how_far) * volume
+
+# Noise, smoothed so it's darker: brightness 1 is a bright hiss, 0.05 a low rumble. It swells in over
+# attack seconds and dies away at decay (bigger is quicker).
+static func add_noise(buffer: PackedFloat32Array, start: float, duration: float, volume: float, brightness: float,
+		attack: float, decay: float, random: RandomNumberGenerator) -> void:
+	var first := int(start * MIX_RATE)
+	var smoothed := 0.0
+	for offset in int(duration * MIX_RATE):
+		if first + offset >= buffer.size():
+			return
+		var time := float(offset) / MIX_RATE
+		smoothed = lerpf(smoothed, random.randf_range(-1.0, 1.0), brightness)
+		# Darker noise is quieter once smoothed, so it's turned back up to match.
+		var envelope := minf(time / maxf(attack, 0.001), 1.0) * exp(-time * decay) * clampf((duration - time) / 0.02, 0.0, 1.0)
+		buffer[first + offset] += smoothed * envelope * volume / sqrt(brightness)
+
+# A rap on wood: a short tone that's gone almost at once, with a tick of noise on the front.
+static func add_knock(buffer: PackedFloat32Array, start: float, frequency: float, volume: float,
+		random: RandomNumberGenerator) -> void:
+	add_slide(buffer, start, frequency * 1.15, frequency, 0.08, volume)
+	add_noise(buffer, start, 0.015, volume * 0.4, 0.8, 0.0, 120.0, random)
